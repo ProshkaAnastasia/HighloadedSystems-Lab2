@@ -6,7 +6,7 @@ spring:
     config:
       enabled: true
       uri: http://config-server:8888  # ← Имя сервиса для Docker!
-      username: admin
+      username: ${CONFIG_USER:admin}
       password: ${CONFIG_PASSWORD:admin}
       fail-fast: true  # ← Падай при ошибке, чтобы видеть проблему
       retry:

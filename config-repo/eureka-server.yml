@@ -14,7 +14,7 @@ eureka:
     registerWithEureka: false
     fetchRegistry: false
     service-url:
-      defaultZone: http://eureka:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   
   dashboard:
     enabled: true

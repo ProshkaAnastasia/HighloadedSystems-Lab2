@@ -21,6 +21,8 @@ java {
 dependencies {
     // Spring Cloud Eureka
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-server")
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
