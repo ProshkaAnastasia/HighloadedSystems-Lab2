@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: eureka-server
+  
+  cloud:
+    config:
+      enabled: true
+      uri: http://config-server:8888  # ← Имя сервиса для Docker!
+      username: admin
+      password: ${CONFIG_PASSWORD:admin}
+      fail-fast: true  # ← Падай при ошибке, чтобы видеть проблему
+      retry:
+        max-attempts: 5
+        initial-interval: 1000
+        max-interval: 5000
+        multiplier: 1.1
+
+logging:
+  level:
+    com.netflix.eureka: WARN
+    com.netflix.discovery: WARN
