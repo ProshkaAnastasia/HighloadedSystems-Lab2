@@ -9,6 +9,7 @@ services:
     build:
       context: ./eureka-server
       dockerfile: Dockerfile
+    container_name: eureka
     ports:
       - "8761:8761"  # Eureka всегда на 8761 (для регистрации)
     environment:

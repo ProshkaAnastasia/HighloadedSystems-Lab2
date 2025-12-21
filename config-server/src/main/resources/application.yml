@@ -5,9 +5,9 @@ spring:
     config:
       server:
         git:
-          uri: file:///config-repo
+          uri: https://github.com/ProshkaAnastasia/HighloadedSystems-Lab2
           default-label: main
-          search-paths: "/"
+          search-paths: "/config-repo"
 
 server:
   port: ${CONFIG_PORT:8888}
