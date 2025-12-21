@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: file:///config-repo
+          default-label: main
+          search-paths: "/"
+
+server:
+  port: ${CONFIG_PORT:8888}
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG
+    org.springframework.boot.actuate: DEBUG

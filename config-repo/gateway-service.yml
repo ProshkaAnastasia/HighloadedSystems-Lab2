@@ -1,0 +1,101 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  cloud:
+    gateway:
+      # CORS конфигурация
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+              - "http://frontend:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+      
+      # Маршруты
+      routes:
+        # User Service
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Service,user-service
+        
+        # Product Service
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/api/products/**,/api/shops/**
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Service,product-service
+        
+        # Order Service
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders/**,/api/cart/**
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Service,order-service
+        
+        # Moderation Service
+        - id: moderation-service
+          uri: lb://moderation-service
+          predicates:
+            - Path=/api/moderation/**
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Service,moderation-service
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive: DEBUG
+
+# Swagger конфигурация
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    urls:
+      - name: User Service
+        url: http://user-service:8081/v3/api-docs
+      - name: Product Service
+        url: http://product-service:8082/v3/api-docs
+      - name: Order Service
+        url: http://order-service:8083/v3/api-docs
+      - name: Moderation Service
+        url: http://moderation-service:8084/v3/api-docs
+  api-docs:
+    path: /v3/api-docs
+  springdoc:
+    api-docs:
+      groups:
+        enabled: true
+
+eureka:
+  instance:
+    hostname: gateway-service
+    instance-id: gateway-service:${server.port}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15
+  client:
+    serviceUrl:
+      defaultZone: http://${EUREKA_HOST:eureka}:${EUREKA_PORT:8761}/eureka
+    register-with-eureka: true
+    fetch-registry: true

@@ -1,0 +1,195 @@
+package ru.itmo.productservice.controller
+
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Min
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import ru.itmo.productservice.model.dto.request.CreateProductRequest
+import ru.itmo.productservice.model.dto.request.UpdateProductRequest
+import ru.itmo.productservice.model.dto.response.PaginatedResponse
+import ru.itmo.productservice.model.dto.response.ProductResponse
+import ru.itmo.productservice.service.ProductService
+
+@RestController
+@RequestMapping("/api/products")
+@Tag(name = "Products", description = "Product catalog API")
+class ProductController(
+    private val productService: ProductService
+) {
+    
+    /**
+     * GET /api/products
+     * Получить все одобренные товары (пагинация)
+     */
+    @GetMapping
+    @Operation(
+        summary = "Get all approved products",
+        description = "Returns paginated list of approved products"
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Products retrieved"),
+        ApiResponse(responseCode = "400", description = "Invalid pagination parameters"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun getAllProducts(
+        @RequestParam(defaultValue = "1")
+        @Min(1, message = "Page must be greater than 0")
+        @Parameter(description = "Page number", example = "1")
+        page: Int,
+        
+        @RequestParam(defaultValue = "20")
+        @Min(1, message = "PageSize must be greater than 0")
+        @Parameter(description = "Items per page", example = "20")
+        pageSize: Int
+    ): ResponseEntity<PaginatedResponse<ProductResponse>> {
+        val response = productService.getApprovedProducts(page, pageSize)
+        return ResponseEntity.ok(response)
+    }
+    
+    /**
+     * GET /api/products/{productId}
+     * Получить товар по ID
+     */
+    @GetMapping("/{productId}")
+    @Operation(summary = "Get product by ID")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Product found"),
+        ApiResponse(responseCode = "400", description = "Invalid product ID"),
+        ApiResponse(responseCode = "404", description = "Product not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun getProduct(
+        @PathVariable
+        @Min(1, message = "Product ID must be greater than 0")
+        @Parameter(description = "Product ID", example = "1")
+        productId: Long
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.getProductById(productId)
+        return ResponseEntity.ok(response)
+    }
+    
+    /**
+     * GET /api/products/search
+     * Поиск товаров по ключевым словам
+     */
+    @GetMapping("/search")
+    @Operation(summary = "Search products by keywords")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Search results"),
+        ApiResponse(responseCode = "400", description = "Invalid parameters"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun searchProducts(
+        @RequestParam("keywords")
+        @Parameter(description = "Search keywords")
+        keywords: String,
+        
+        @RequestParam(defaultValue = "1")
+        @Min(1, message = "Page must be greater than 0")
+        @Parameter(description = "Page number")
+        page: Int,
+        
+        @RequestParam(defaultValue = "20")
+        @Min(1, message = "PageSize must be greater than 0")
+        @Parameter(description = "Items per page")
+        pageSize: Int
+    ): ResponseEntity<PaginatedResponse<ProductResponse>> {
+        val response = productService.searchProducts(keywords, page, pageSize)
+        return ResponseEntity.ok(response)
+    }
+    
+    /**
+     * POST /api/products
+     * Создать новый товар (только для продавца)
+     */
+    @PostMapping
+    @Operation(summary = "Create new product")
+    @ApiResponses(
+        ApiResponse(responseCode = "201", description = "Product created"),
+        ApiResponse(responseCode = "400", description = "Invalid input"),
+        ApiResponse(responseCode = "403", description = "Not authorized"),
+        ApiResponse(responseCode = "404", description = "Shop not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun createProduct(
+        @RequestParam
+        @Min(1, message = "Seller ID must be greater than 0")
+        @Parameter(description = "Seller ID", example = "1")
+        sellerId: Long,
+        
+        @Valid
+        @RequestBody
+        request: CreateProductRequest
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.createProduct(request, sellerId)
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+    
+    /**
+     * PUT /api/products/{productId}
+     * Обновить товар (только для модератора)
+     */
+    @PutMapping("/{productId}")
+    @Operation(summary = "Update product")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Product updated"),
+        ApiResponse(responseCode = "400", description = "Invalid input"),
+        ApiResponse(responseCode = "403", description = "Not authorized"),
+        ApiResponse(responseCode = "404", description = "Product not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun updateProduct(
+        @PathVariable
+        @Min(1, message = "Product ID must be greater than 0")
+        @Parameter(description = "Product ID")
+        productId: Long,
+        
+        @RequestParam
+        @Min(1, message = "User ID must be greater than 0")
+        @Parameter(description = "User ID (moderator)")
+        userId: Long,
+        
+        @Valid
+        @RequestBody
+        request: UpdateProductRequest
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.updateProduct(productId, userId, request)
+        return ResponseEntity.ok(response)
+    }
+    
+    /**
+     * DELETE /api/products/{productId}
+     * Удалить товар
+     */
+    @DeleteMapping("/{productId}")
+    @Operation(summary = "Delete product")
+    @ApiResponses(
+        ApiResponse(responseCode = "204", description = "Product deleted"),
+        ApiResponse(responseCode = "400", description = "Invalid product ID"),
+        ApiResponse(responseCode = "403", description = "Not authorized"),
+        ApiResponse(responseCode = "404", description = "Product not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun deleteProduct(
+        @PathVariable
+        @Min(1, message = "Product ID must be greater than 0")
+        @Parameter(description = "Product ID")
+        productId: Long,
+        
+        @RequestParam
+        @Min(1, message = "User ID must be greater than 0")
+        @Parameter(description = "User ID")
+        userId: Long
+    ): ResponseEntity<Void> {
+        productService.deleteProduct(productId, userId)
+        return ResponseEntity.noContent().build()
+    }
+}

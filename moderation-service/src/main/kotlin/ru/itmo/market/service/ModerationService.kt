@@ -1,0 +1,218 @@
+package ru.itmo.market.service
+
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.slf4j.LoggerFactory
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
+import ru.itmo.market.client.ProductServiceClient
+import ru.itmo.market.client.UserServiceClient
+import ru.itmo.market.exception.ForbiddenException
+import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.model.dto.request.BulkModerationRequest
+import ru.itmo.market.model.dto.response.ModerationResultResponse
+import ru.itmo.market.model.dto.response.PaginatedResponse
+import ru.itmo.market.model.dto.response.ProductResponse
+import ru.itmo.market.model.entity.ModerationAction
+import ru.itmo.market.model.entity.ModerationAudit
+import ru.itmo.market.repository.ModerationActionRepository
+import ru.itmo.market.repository.ModerationAuditRepository
+import java.time.LocalDateTime
+
+@Service
+class ModerationService(
+    private val productServiceClient: ProductServiceClient,
+    private val userServiceClient: UserServiceClient,
+    private val moderationActionRepository: ModerationActionRepository,
+    private val moderationAuditRepository: ModerationAuditRepository
+) {
+    
+    private val logger = LoggerFactory.getLogger(ModerationService::class.java)
+    
+    // ========== ОСНОВНЫЕ МЕТОДЫ ==========
+    
+    fun getPendingProducts(moderatorId: Long, page: Int, pageSize: Int): Mono<PaginatedResponse<ProductResponse>> {
+        return verifyModerator(moderatorId)
+            .flatMap {
+                Mono.fromCallable {
+                    productServiceClient.getPendingProducts(page, pageSize)
+                }
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSuccess { logger.info("Fetched pending products for moderator $moderatorId") }
+                .onErrorMap { throwable ->
+                    logger.error("Failed to fetch pending products", throwable)
+                    RuntimeException("Cannot fetch pending products", throwable)
+                }
+            }
+    }
+    
+    fun getPendingProductById(moderatorId: Long, productId: Long): Mono<ProductResponse> {
+        return verifyModerator(moderatorId)
+            .flatMap {
+                Mono.fromCallable {
+                    productServiceClient.getProductById(productId)
+                }
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSuccess { logger.info("Fetched product $productId") }
+            }
+            .onErrorMap { throwable ->
+                logger.error("Failed to fetch product $productId", throwable)
+                RuntimeException("Cannot fetch product", throwable)
+            }
+    }
+    
+    @Transactional
+    fun approveProduct(moderatorId: Long, productId: Long): Mono<ModerationResultResponse> {
+        return verifyModerator(moderatorId)
+            .flatMap { userResponse ->
+                // Получаем товар и одобряем его
+                Mono.fromCallable {
+                    productServiceClient.approveProduct(productId, moderatorId)
+                }
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap { product ->
+                    // Сохраняем действие модерации
+                    val action = ModerationAction(
+                        productId = productId,
+                        moderatorId = moderatorId,
+                        actionType = "APPROVE",
+                        reason = null
+                    )
+                    
+                    moderationActionRepository.save(action)
+                        .flatMap { savedAction ->
+                            // Сохраняем аудит
+                            val audit = ModerationAudit(
+                                actionId = savedAction.id,
+                                productId = productId,
+                                moderatorId = moderatorId,
+                                oldStatus = "PENDING",
+                                newStatus = "APPROVED"
+                            )
+                            moderationAuditRepository.save(audit)
+                                .map {
+                                    ModerationResultResponse(
+                                        productId = productId,
+                                        productName = product.name,
+                                        action = "APPROVE",
+                                        reason = null,
+                                        moderatorId = moderatorId,
+                                        newStatus = "APPROVED",
+                                        timestamp = LocalDateTime.now()
+                                    )
+                                }
+                        }
+                }
+                .doOnSuccess { logger.info("Product $productId approved by moderator $moderatorId") }
+            }
+            .onErrorMap { throwable ->
+                logger.error("Failed to approve product $productId", throwable)
+                RuntimeException("Cannot approve product", throwable)
+            }
+    }
+    
+    @Transactional
+    fun rejectProduct(moderatorId: Long, productId: Long, reason: String): Mono<ModerationResultResponse> {
+        return verifyModerator(moderatorId)
+            .flatMap { userResponse ->
+                // Получаем товар и отклоняем его
+                Mono.fromCallable {
+                    productServiceClient.rejectProduct(productId, moderatorId, reason)
+                }
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap { product ->
+                    // Сохраняем действие модерации
+                    val action = ModerationAction(
+                        productId = productId,
+                        moderatorId = moderatorId,
+                        actionType = "REJECT",
+                        reason = reason
+                    )
+                    
+                    moderationActionRepository.save(action)
+                        .flatMap { savedAction ->
+                            // Сохраняем аудит
+                            val audit = ModerationAudit(
+                                actionId = savedAction.id,
+                                productId = productId,
+                                moderatorId = moderatorId,
+                                oldStatus = "PENDING",
+                                newStatus = "REJECTED"
+                            )
+                            moderationAuditRepository.save(audit)
+                                .map {
+                                    ModerationResultResponse(
+                                        productId = productId,
+                                        productName = product.name,
+                                        action = "REJECT",
+                                        reason = reason,
+                                        moderatorId = moderatorId,
+                                        newStatus = "REJECTED",
+                                        timestamp = LocalDateTime.now()
+                                    )
+                                }
+                        }
+                }
+                .doOnSuccess { logger.info("Product $productId rejected by moderator $moderatorId") }
+            }
+            .onErrorMap { throwable ->
+                logger.error("Failed to reject product $productId", throwable)
+                RuntimeException("Cannot reject product", throwable)
+            }
+    }
+    
+    // ========== BULK ОПЕРАЦИИ ==========
+    
+    @Transactional
+    fun bulkModerate(moderatorId: Long, request: BulkModerationRequest): Flux<ModerationResultResponse> {
+        return verifyModerator(moderatorId)
+            .flatMapMany { userResponse ->
+                Flux.fromIterable(request.productIds)
+                    .flatMap { productId ->
+                        if (request.action.uppercase() == "APPROVE") {
+                            approveProduct(moderatorId, productId)
+                        } else {
+                            rejectProduct(moderatorId, productId, request.reason ?: "No reason provided")
+                        }
+                    }
+            }
+            .doOnNext { logger.info("Bulk moderation action: ${it.action} for product ${it.productId}") }
+    }
+    
+    // ========== ИСТОРИИ И ЛОГИ ==========
+    
+    fun getModerationHistory(moderatorId: Long): Flux<ModerationAction> {
+        return moderationActionRepository.findByModeratorIdOrderByCreatedAtDesc(moderatorId)
+            .doOnNext { logger.info("Fetching history for moderator $moderatorId") }
+    }
+    
+    fun getProductModerationHistory(productId: Long): Flux<ModerationAudit> {
+        return moderationAuditRepository.findByProductIdOrderByCreatedAtDesc(productId)
+            .doOnNext { logger.info("Fetching moderation history for product $productId") }
+    }
+    
+    // ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+    
+    private fun verifyModerator(moderatorId: Long): Mono<ru.itmo.market.model.dto.response.UserResponse> {
+        return Mono.fromCallable {
+            userServiceClient.getUserById(moderatorId)
+        }
+        .subscribeOn(Schedulers.boundedElastic())
+        .flatMap { user ->
+            if (user.roles.contains("MODERATOR") || user.roles.contains("ADMIN")) {
+                Mono.just(user)
+            } else {
+                Mono.error(ForbiddenException("User is not a moderator"))
+            }
+        }
+        .onErrorMap { throwable ->
+            when {
+                throwable is ForbiddenException -> throwable
+                throwable.message?.contains("404") == true -> 
+                    ResourceNotFoundException("Moderator not found")
+                else -> RuntimeException("Cannot verify moderator", throwable)
+            }
+        }
+    }
+}

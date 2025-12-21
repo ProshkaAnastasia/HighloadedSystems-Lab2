@@ -1,0 +1,12 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "kotlin.compiler.jvm.target": "21",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-23",
+            "path": "/Library/Java/JavaVirtualMachines/jdk-23.jdk/Contents/Home", 
+            "default": true
+        }
+    ],
+    "java.compile.nullAnalysis.mode": "disabled"
+}

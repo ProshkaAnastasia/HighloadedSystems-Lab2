@@ -1,0 +1,59 @@
+plugins {
+    kotlin("jvm") version "1.9.25"
+    kotlin("plugin.spring") version "1.9.25"
+    id("org.springframework.boot") version "3.5.7"
+    id("io.spring.dependency-management") version "1.1.7"
+}
+
+group = "ru.itmo.market"
+version = "1.0.0"
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Cloud Gateway
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
+    
+    // Spring Boot
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    
+    // OpenAPI/Swagger for unified docs
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
+    
+    // Resilience4j
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+    
+    // Kotlin
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    
+    // Logging
+    implementation("org.springframework.boot:spring-boot-starter-logging")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.3")
+    }
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xjsr305=strict")
+    }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
