@@ -99,6 +99,7 @@ logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web.reactive: DEBUG
+    ru.itmo.gateway: DEBUG
 
 springdoc:
   swagger-ui:
@@ -108,7 +109,7 @@ springdoc:
     tags-sorter: alpha
   
   api-docs:
-    enabled: false
+    enabled: true
     path: /v1/api-docs
 
   use-root-path: true

@@ -5,8 +5,6 @@ import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.info.Contact
-import io.swagger.v3.oas.models.media.Content
-import io.swagger.v3.oas.models.media.MediaType
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.oas.models.responses.ApiResponses
 import io.swagger.v3.oas.models.servers.Server
@@ -57,23 +55,28 @@ class SwaggerAggregatorController {
             .flatMap { route ->
                 fetchServiceDocs(route.id)
                     .map { docs -> route.id to docs }
+                    .onErrorResume { error ->
+                        logger.warn("⚠️ Skipping ${route.id}: ${error.message}")
+                        Mono.empty()
+                    }
             }
             .collectMap({ it.first }, { it.second })
             .map { serviceDocs ->
                 mergePathItems(baseOpenAPI, serviceDocs)
             }
             .onErrorResume { error ->
-                logger.error("Error aggregating docs: ${error.message}", error)
+                logger.error("❌ Error aggregating docs: ${error.message}", error)
                 Mono.just(baseOpenAPI)
             }
     }
-    
+
     @Suppress("UNCHECKED_CAST")
     private fun fetchServiceDocs(serviceId: String?): Mono<Map<String, Any>> {
         if (serviceId == null) return Mono.empty()
+        val port = 8080
 
-        val docsUrl = "http://$serviceId/v1/api-docs"
-        logger.info("Fetching docs from: $docsUrl")
+        val docsUrl = "http://$serviceId:$port/v1/api-docs"
+        logger.info("📡 Fetching docs from: $docsUrl")
 
         return webClient.get()
             .uri(docsUrl)
@@ -81,9 +84,13 @@ class SwaggerAggregatorController {
             .bodyToMono(Map::class.java)
             .cast(Map::class.java)
             .map { it as Map<String, Any> }
+            .doOnSuccess { docs ->
+                val pathsCount = (docs["paths"] as? Map<*, *>)?.size ?: 0
+                logger.info("✅ Successfully fetched $pathsCount paths from $serviceId")
+            }
             .onErrorResume { error ->
-                logger.warn("Failed to fetch docs for $serviceId: ${error.message}")
-                Mono.just(emptyMap())
+                logger.debug("Service $serviceId not available: ${error.message}")
+                Mono.error(error)
             }
     }
 
@@ -97,12 +104,14 @@ class SwaggerAggregatorController {
         serviceDocs.forEach { (serviceId, docs) ->
             val paths = docs["paths"] as? Map<String, Map<String, Any>> ?: emptyMap()
 
-            paths.forEach { (path, pathItem) ->
-                // Добавляем префикс сервиса к пути
-                val gatewayPath = "/$serviceId$path"
-                logger.info("Adding path: $gatewayPath")
+            if (paths.isNotEmpty()) {
+                logger.info("📦 Processing $serviceId with ${paths.size} paths")
+            }
 
-                // Преобразуем в PathItem
+            paths.forEach { (path, pathItem) ->
+                val gatewayPath = "/$serviceId$path"
+                logger.debug("Adding path: $gatewayPath")
+
                 val item = PathItem()
 
                 (pathItem["get"] as? Map<String, Any>)?.let {
@@ -127,6 +136,10 @@ class SwaggerAggregatorController {
             }
         }
 
+        if (allPaths.isNotEmpty()) {
+            logger.info("✨ Total paths aggregated: ${allPaths.size}")
+        }
+
         baseOpenAPI.paths(
             io.swagger.v3.oas.models.Paths().apply {
                 allPaths.forEach { (path, item) ->
@@ -142,19 +155,11 @@ class SwaggerAggregatorController {
     private fun convertToOperation(operationMap: Map<String, Any>): Operation {
         val operation = Operation()
 
-        // Summary
         (operationMap["summary"] as? String)?.let { operation.summary(it) }
-
-        // Description
         (operationMap["description"] as? String)?.let { operation.description(it) }
-
-        // Tags
         (operationMap["tags"] as? List<String>)?.let { operation.tags(it) }
-
-        // Operation ID
         (operationMap["operationId"] as? String)?.let { operation.operationId(it) }
 
-        // Responses
         val responses = ApiResponses()
         (operationMap["responses"] as? Map<String, Map<String, Any>>)?.forEach { (code, response) ->
             val apiResponse = ApiResponse()
