@@ -36,7 +36,10 @@ dependencies {
     // Spring Cloud
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+    implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
+
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.1.0")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.1.0")
     implementation("io.github.resilience4j:resilience4j-timelimiter:2.1.0")

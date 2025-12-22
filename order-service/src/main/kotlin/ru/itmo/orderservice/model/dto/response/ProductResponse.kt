@@ -1,9 +1,9 @@
-package ru.itmo.orderservice.model.dto
+package ru.itmo.orderservice.model.dto.response
 
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-data class ProductDTO(
+data class ProductResponse(
     val id: Long,
     val name: String,
     val description: String?,
@@ -13,6 +13,8 @@ data class ProductDTO(
     val sellerId: Long,
     val status: String,
     val rejectionReason: String?,
+    val averageRating: Double? = null,
+    val commentsCount: Long? = null,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )

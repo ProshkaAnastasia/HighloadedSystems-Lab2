@@ -87,4 +87,17 @@ class GlobalExceptionHandler {
         )
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse)
     }
+
+    @ExceptionHandler(ServiceUnavailableException::class)
+    fun handleServiceUnavailableException(
+        ex: ServiceUnavailableException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            message = ex.message ?: "Service unavailable",
+            status = HttpStatus.SERVICE_UNAVAILABLE.value(),
+            path = request.getDescription(false).replace("uri=", "")
+        )
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse)
+    }
 }

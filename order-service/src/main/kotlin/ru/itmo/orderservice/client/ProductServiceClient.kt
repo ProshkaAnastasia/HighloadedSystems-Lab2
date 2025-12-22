@@ -1,17 +1,26 @@
 package ru.itmo.orderservice.client
 
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Bean
+import org.springframework.stereotype.Component
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import ru.itmo.orderservice.model.dto.ProductDTO
+import ru.itmo.orderservice.exception.ServiceUnavailableException
+import ru.itmo.orderservice.exception.ResourceNotFoundException
+import ru.itmo.orderservice.exception.ConflictException
+import ru.itmo.orderservice.exception.BadRequestException
+import ru.itmo.orderservice.model.dto.response.ProductResponse
 import java.util.concurrent.CompletableFuture
+import feign.Response
+import feign.codec.ErrorDecoder
 
 @FeignClient(
     name = "product-service",
     fallback = ProductServiceClientFallback::class,
-    configuration = [FeignClientConfig::class]
+    configuration = [ProductServiceFeignConfig::class]
 )
 interface ProductServiceClient {
     
@@ -19,21 +28,8 @@ interface ProductServiceClient {
      * Получить товар по ID
      */
     @GetMapping("/api/products/{productId}")
-    @CircuitBreaker(
-        name = "productService",
-        fallbackMethod = "getProductByIdFallback"
-    )
-    @TimeLimiter(
-        name = "productService",
-        fallbackMethod = "getProductByIdFallback"
-    )
-    fun getProductById(@PathVariable("productId") productId: Long): ProductDTO
+    fun getProductById(@PathVariable("productId") productId: Long): ProductResponse
     
-    /**
-     * Проверить существование товара
-     */
-    @GetMapping("/api/products/{productId}/exists")
-    fun productExists(@PathVariable("productId") productId: Long): Boolean
 }
 
 /**
@@ -41,22 +37,21 @@ interface ProductServiceClient {
  */
 @org.springframework.stereotype.Component
 class ProductServiceClientFallback : ProductServiceClient {
-    override fun getProductById(productId: Long): ProductDTO {
-        throw RuntimeException("Product service is currently unavailable. Please try again later.")
-    }
-    
-    override fun productExists(productId: Long): Boolean {
-        throw RuntimeException("Product service is currently unavailable.")
+    override fun getProductById(productId: Long): ProductResponse {
+        throw ServiceUnavailableException("Product service is currently unavailable. Please try again later.")
     }
 }
 
-/**
- * Конфигурация Feign Client
- */
-@org.springframework.context.annotation.Configuration
-class FeignClientConfig {
-    @org.springframework.context.annotation.Bean
-    fun feignClientBuilder(): feign.Client {
-        return feign.Client.Default(null, null)
+class ProductServiceFeignConfig {
+    @Bean
+    fun productServiceErrorDecoder(): ErrorDecoder {
+        return ErrorDecoder { _, response ->
+            when (response.status()) {
+                400 -> BadRequestException("Invalid product_id")
+                404 -> ResourceNotFoundException("Product not found")
+                500, 502, 503 -> ServiceUnavailableException("Product service is currently unavailable")
+                else -> RuntimeException("HTTP ${response.status()}")
+            }
+        }
     }
 }

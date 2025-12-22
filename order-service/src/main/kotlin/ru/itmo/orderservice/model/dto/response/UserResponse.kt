@@ -1,12 +1,8 @@
-package ru.itmo.orderservice.model.dto
+package ru.itmo.orderservice.model.dto.response
 
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
-/**
- * UserDTO для маппинга
- */
-data class UserDTO(
+data class UserResponse(
     val id: Long,
     val username: String,
     val email: String,

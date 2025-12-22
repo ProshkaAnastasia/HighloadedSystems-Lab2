@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS orders (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,  -- ← убрать REFERENCES users
     total_price NUMERIC(19, 2) NOT NULL DEFAULT 0,
     status VARCHAR(50) NOT NULL DEFAULT 'CART',
     delivery_address TEXT,
