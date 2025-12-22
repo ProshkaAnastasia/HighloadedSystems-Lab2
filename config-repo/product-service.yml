@@ -29,7 +29,7 @@ spring:
 
 logging:
   level:
-    ru.itmo.product.repository: DEBUG
+    ru.itmo.product: DEBUG
 
 app:
   cache:
