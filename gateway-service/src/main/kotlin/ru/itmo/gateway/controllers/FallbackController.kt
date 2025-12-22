@@ -1,4 +1,4 @@
-package ru.itmo.gateway.controller
+package ru.itmo.gateway.controllers
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
