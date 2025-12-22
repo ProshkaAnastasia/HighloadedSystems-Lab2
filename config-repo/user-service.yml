@@ -49,7 +49,7 @@ eureka:
   instance:
     hostname: user-service
     instance-id: user-service:${server.port}
-    prefer-ip-address: true
+    prefer-ip-address: false
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
   client:
