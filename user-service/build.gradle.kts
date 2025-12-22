@@ -40,6 +40,7 @@ dependencies {
     
     // R2DBC драйвер PostgreSQL
     implementation("org.postgresql:r2dbc-postgresql:1.0.5.RELEASE")
+    implementation("org.postgresql:postgresql")
     
     // Flyway для миграций
     implementation("org.flywaydb:flyway-core")
