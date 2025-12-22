@@ -46,16 +46,13 @@ class UserServiceClientFallback : UserServiceClient {
 @Configuration
 class FeignClientConfig {
     @Bean
-    fun feignClientBuilder(): feign.Client {
-        return feign.Client.Default(null, null)
-    }
-    
-    @Bean
     fun errorDecoder(): ErrorDecoder {
         return ErrorDecoder { _, response ->
-            when (response.status()) {  // ← метод, не свойство
+            when (response.status()) {
                 404 -> ResourceNotFoundException("User not found")
-                500, 502, 503 -> ServiceUnavailableException("User service is currently unavailable. Please try again later.")
+                500, 502, 503 -> ServiceUnavailableException(
+                    "User service is currently unavailable"
+                )
                 else -> RuntimeException("HTTP ${response.status()}")
             }
         }
