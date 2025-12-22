@@ -155,6 +155,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      gateway-service:
+        condition: service_healthy
       postgres-user:
         condition: service_healthy
     networks:
@@ -190,6 +192,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      gateway-service:
+        condition: service_healthy
       postgres-product:
         condition: service_healthy
     networks:
@@ -224,6 +228,8 @@ services:
       eureka-server:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
       postgres-order:
         condition: service_healthy
@@ -269,6 +275,8 @@ services:
       product-service:
         condition: service_healthy
       user-service:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
     networks:
       - itmo-network
