@@ -10,8 +10,12 @@ spring:
             - id: user-service
               uri: lb://user-service
               predicates:
-                - Path=/users/**,/profile/**
+                - Path=/user-service/**
               filters:
+                - name: RewritePath
+                  args:
+                    regexp: ^/user-service(?<remaining>/.*)$
+                    replacement: ${remaining}
                 - name: CircuitBreaker
                   args:
                     name: serviceCircuitBreaker
@@ -24,8 +28,12 @@ spring:
             - id: product-service
               uri: lb://product-service
               predicates:
-                - Path=/products/**,/shops/**,/categories/**
+                - Path=/product-service/**
               filters:
+                - name: RewritePath
+                  args:
+                    regexp: ^/product-service(?<remaining>/.*)$
+                    replacement: ${remaining}
                 - name: CircuitBreaker
                   args:
                     name: serviceCircuitBreaker
@@ -35,11 +43,16 @@ spring:
                     name: X-Service
                     value: product-service
 
+
             - id: order-service
               uri: lb://order-service
               predicates:
-                - Path=/orders/**,/cart/**,/checkout/**
+                - Path=/order-service/**
               filters:
+                - name: RewritePath
+                  args:
+                    regexp: ^/order-service(?<remaining>/.*)$
+                    replacement: ${remaining}
                 - name: CircuitBreaker
                   args:
                     name: serviceCircuitBreaker
@@ -52,8 +65,12 @@ spring:
             - id: moderation-service
               uri: lb://moderation-service
               predicates:
-                - Path=/moderation/**,/reviews/**
+                - Path=/moderation-service/**
               filters:
+                - name: RewritePath
+                  args:
+                    regexp: ^/moderation-service(?<remaining>/.*)$
+                    replacement: ${remaining}
                 - name: CircuitBreaker
                   args:
                     name: serviceCircuitBreaker
@@ -83,26 +100,26 @@ logging:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web.reactive: DEBUG
 
-# Swagger конфигурация
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
     urls:
       - name: User Service
-        url: http://user-service:8080/v1/api-docs
+        url: /user-service/v1/api-docs
       - name: Product Service
-        url: http://product-service:8080/v1/api-docs
+        url: /product-service/v1/api-docs
       - name: Order Service
-        url: http://order-service:8080/v1/api-docs
+        url: /order-service/v1/api-docs
       - name: Moderation Service
-        url: http://moderation-service:8080/v1/api-docs
+        url: /moderation-service/v1/api-docs
+    urls-primary-name: "Product Service"
+    operations-sorter: method
+    tags-sorter: alpha
+  
+  # Gateway сам генерирует OpenAPI
   api-docs:
     path: /v1/api-docs
-  springdoc:
-    api-docs:
-      groups:
-        enabled: true
 
 management:
   endpoint:
