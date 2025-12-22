@@ -29,7 +29,10 @@ spring:
 
 logging:
   level:
-    ru.itmo.product: DEBUG
+    ru.itmo.productservice: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.flywaydb: DEBUG
+    org.springframework.security: DEBUG
 
 app:
   cache:
