@@ -11,13 +11,13 @@ import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.exception.ServiceUnavailableException
 import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.exception.BadRequestException
 import java.util.concurrent.CompletableFuture
 import feign.Response
 import feign.codec.ErrorDecoder
 
 @FeignClient(
     name = "product-service",
-    url = "\${product-service.url:http://product-service:8082}",
     fallback = ProductServiceClientFallback::class,
     configuration = [ProductServiceFeignConfig::class]
 )

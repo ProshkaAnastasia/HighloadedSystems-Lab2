@@ -1,21 +1,54 @@
 package ru.itmo.market.client
 
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import ru.itmo.market.model.dto.response.UserResponse
+import org.springframework.context.annotation.Bean
+import feign.Response
+import feign.codec.ErrorDecoder
+import ru.itmo.market.exception.ServiceUnavailableException
+import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.exception.BadRequestException
 
-@FeignClient(name = "user-service", url = "\${user-service.url:http://user-service:8081}")
+@FeignClient(
+    name = "user-service",
+    fallback = UserServiceClientFallback::class,
+    configuration = [UserServiceFeignConfig::class]
+)
 interface UserServiceClient {
     
     @GetMapping("/api/users/{id}")
-    @CircuitBreaker(name = "userService", fallbackMethod = "getUserFallback")
-    @TimeLimiter(name = "userService", fallbackMethod = "getUserFallback")
     fun getUserById(@PathVariable id: Long): UserResponse
+}
+
+/**
+ * Fallback реализация при недоступности User Service
+ */
+@org.springframework.stereotype.Component
+class UserServiceClientFallback : UserServiceClient {
     
-    fun getUserFallback(id: Long, e: Exception): UserResponse {
-        throw RuntimeException("User Service недоступен. ID: $id", e)
+    override fun getUserById(id: Long): UserResponse {
+        throw ServiceUnavailableException(
+            message = "User Service недоступен. ID: $id"
+        )
+    }
+}
+
+
+class UserServiceFeignConfig {
+    
+    @Bean
+    fun userServiceErrorDecoder(): ErrorDecoder {
+        return ErrorDecoder { _, response ->
+            when (response.status()) {
+                400 -> BadRequestException("Invalid user_id")
+                404 -> ResourceNotFoundException("User not found")
+                500, 502, 503 -> ServiceUnavailableException(
+                    message = "User service is currently unavailable"
+                )
+                else -> RuntimeException("HTTP ${response.status()}")
+            }
+        }
     }
 }
