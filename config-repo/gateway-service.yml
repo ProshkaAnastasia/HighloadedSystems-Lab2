@@ -117,9 +117,12 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
   
-  # Gateway сам генерирует OpenAPI
   api-docs:
+    enabled: true
     path: /v1/api-docs
+
+  enable-native-support: true
+  swagger-ui.enable-spring-security: false
 
 management:
   endpoint:

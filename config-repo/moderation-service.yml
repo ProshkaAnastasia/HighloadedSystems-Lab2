@@ -28,6 +28,13 @@ app:
     batch-size: 10
     timeout: 30
 
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  api-docs:
+    path: /v1/api-docs
+
 eureka:
   instance:
     hostname: moderation-service

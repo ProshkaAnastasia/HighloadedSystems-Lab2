@@ -35,6 +35,13 @@ logging:
     ru.itmo.user.service: DEBUG
     org.springframework.security: DEBUG
 
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  api-docs:
+    path: /v1/api-docs
+
 app:
   jwt:
     secret: ${JWT_SECRET:your-secret-key-min-32-chars-long-here}
