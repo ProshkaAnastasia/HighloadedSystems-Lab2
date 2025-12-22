@@ -108,7 +108,7 @@ springdoc:
     tags-sorter: alpha
   
   api-docs:
-    enabled: true
+    enabled: false
     path: /v1/api-docs
 
   use-root-path: true
