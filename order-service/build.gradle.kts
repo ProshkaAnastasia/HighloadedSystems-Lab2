@@ -6,8 +6,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "ru.itmo"
-version = "0.0.1-SNAPSHOT"
+group = "ru.itmo.order"
+version = "0.0.1"
 description = "Order Service - Spring Boot + JPA"
 
 java {
@@ -22,7 +22,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.3")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.1")
     }
 }
 

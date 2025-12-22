@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8083}
+  port: ${SERVER_PORT:8080}
   servlet:
     context-path: /
 
@@ -43,7 +43,7 @@ eureka:
   instance:
     hostname: order-service
     instance-id: order-service:${server.port}
-    prefer-ip-address: true
+    prefer-ip-address: false
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
   client:
