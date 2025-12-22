@@ -33,8 +33,7 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.4.0")
     
     // Resilience4j
-    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
-    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
     
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
