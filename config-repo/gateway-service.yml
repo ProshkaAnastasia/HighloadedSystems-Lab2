@@ -73,19 +73,29 @@ springdoc:
     enabled: true
     urls:
       - name: User Service
-        url: http://user-service:8081/v3/api-docs
+        url: http://user-service:8080/v1/api-docs
       - name: Product Service
-        url: http://product-service:8082/v3/api-docs
+        url: http://product-service:8080/v1/api-docs
       - name: Order Service
-        url: http://order-service:8083/v3/api-docs
+        url: http://order-service:8080/v1/api-docs
       - name: Moderation Service
-        url: http://moderation-service:8084/v3/api-docs
+        url: http://moderation-service:8080/v1/api-docs
   api-docs:
-    path: /v3/api-docs
+    path: /v1/api-docs
   springdoc:
     api-docs:
       groups:
         enabled: true
+
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,prometheus
+
 
 eureka:
   instance:

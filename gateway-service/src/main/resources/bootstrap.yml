@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: gateway-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:docker}
+  
+  cloud:
+    config:
+      enabled: true
+      uri: http://${CONFIG_SERVER_HOST:config-server}:${CONFIG_SERVER_PORT:8888}
+      fail-fast: true
+      retry:
+        initial-interval: 1000
+        max-interval: 5000
+        multiplier: 1.1
+        max-attempts: 10
+  

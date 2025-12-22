@@ -5,7 +5,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "ru.itmo.market"
+group = "ru.itmo.gateway"
 version = "1.0.0"
 
 java {
@@ -20,16 +20,17 @@ repositories {
 
 dependencies {
     // Spring Cloud Gateway
-    implementation("org.springframework.cloud:spring-cloud-starter-gateway")
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     
     // Spring Boot
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     
     // OpenAPI/Swagger for unified docs
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.4.0")
     
     // Resilience4j
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
@@ -44,7 +45,7 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.3")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.1")
     }
 }
 

@@ -147,11 +147,11 @@ services:
       - DB_PASSWORD=itmopassword
       - CONFIG_SERVER_HOST=config-server
       - CONFIG_SERVER_PORT=8888
-      - EUREKA_HOST=eureka
+      - EUREKA_HOST=eureka-server
       - EUREKA_PORT=8761
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      eureka:
+      eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -182,11 +182,11 @@ services:
       - DB_PASSWORD=itmopassword
       - CONFIG_SERVER_HOST=config-server
       - CONFIG_SERVER_PORT=8888
-      - EUREKA_HOST=eureka
+      - EUREKA_HOST=eureka-server
       - EUREKA_PORT=8761
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      eureka:
+      eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -217,11 +217,11 @@ services:
       - DB_PASSWORD=itmopassword
       - CONFIG_SERVER_HOST=config-server
       - CONFIG_SERVER_PORT=8888
-      - EUREKA_HOST=eureka
+      - EUREKA_HOST=eureka-server
       - EUREKA_PORT=8761
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      eureka:
+      eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -256,11 +256,11 @@ services:
       - DB_PASSWORD=itmopassword
       - CONFIG_SERVER_HOST=config-server
       - CONFIG_SERVER_PORT=8888
-      - EUREKA_HOST=eureka
+      - EUREKA_HOST=eureka-server
       - EUREKA_PORT=8761
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      eureka:
+      eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -290,21 +290,13 @@ services:
       - SERVER_PORT=8080
       - CONFIG_SERVER_HOST=config-server
       - CONFIG_SERVER_PORT=8888
-      - EUREKA_HOST=eureka
+      - EUREKA_HOST=eureka-server
       - EUREKA_PORT=8761
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      eureka:
+      eureka-server:
         condition: service_healthy
       config-server:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      product-service:
-        condition: service_healthy
-      order-service:
-        condition: service_healthy
-      moderation-service:
         condition: service_healthy
     networks:
       - itmo-network
