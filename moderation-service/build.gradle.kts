@@ -20,7 +20,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.3")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.1")
     }
 }
 
@@ -28,6 +28,7 @@ dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     
     // Spring Cloud
@@ -35,6 +36,8 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
+    implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
     
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
