@@ -101,11 +101,7 @@ logging:
     org.springframework.web.reactive: DEBUG
     ru.itmo.gateway: DEBUG
 
-springdoc:
-  api-docs:
-    enabled: true   
-    path: /v3/api-docs  
-
+springdoc: 
   swagger-ui:
     enabled: true               
     path: /swagger-ui.html
