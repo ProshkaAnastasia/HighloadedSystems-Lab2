@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono
 import ru.itmo.userservice.model.dto.request.RegisterRequest
 import ru.itmo.userservice.model.dto.request.UpdateProfileRequest
 import ru.itmo.userservice.model.dto.response.UserResponse
+import ru.itmo.userservice.model.dto.response.ErrorResponse
 import ru.itmo.userservice.service.UserService
 
 @RestController
@@ -71,9 +72,21 @@ class UserController(
                 description = "User profile retrieved",
                 content = [Content(schema = Schema(implementation = UserResponse::class))]
             ),
-            ApiResponse(responseCode = "400", description = "Invalid userId"),
-            ApiResponse(responseCode = "404", description = "User not found"),
-            ApiResponse(responseCode = "500", description = "Internal server error")
+            ApiResponse(
+                responseCode = "400", 
+                description = "Invalid userId",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "404", 
+                description = "User not found",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "500", 
+                description = "Internal server error",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            )
         ]
     )
     fun getCurrentUser(@RequestParam("userId") userId: Long): Mono<ResponseEntity<UserResponse>> {
@@ -100,9 +113,21 @@ class UserController(
                 description = "User found",
                 content = [Content(schema = Schema(implementation = UserResponse::class))]
             ),
-            ApiResponse(responseCode = "400", description = "Invalid userId"),
-            ApiResponse(responseCode = "404", description = "User not found"),
-            ApiResponse(responseCode = "500", description = "Internal server error")
+            ApiResponse(
+                responseCode = "400", 
+                description = "Invalid userId",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "404", 
+                description = "User not found",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "500", 
+                description = "Internal server error",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            )
         ]
     )
     fun getUserById(@PathVariable userId: Long): Mono<ResponseEntity<UserResponse>> {
@@ -129,9 +154,21 @@ class UserController(
                 description = "User found",
                 content = [Content(schema = Schema(implementation = UserResponse::class))]
             ),
-            ApiResponse(responseCode = "400", description = "Invalid username"),
-            ApiResponse(responseCode = "404", description = "User not found"),
-            ApiResponse(responseCode = "500", description = "Internal server error")
+            ApiResponse(
+                responseCode = "400", 
+                description = "Invalid username",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "404", 
+                description = "User not found",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "500", 
+                description = "Internal server error",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            )
         ]
     )
     fun getUserByUsername(@PathVariable username: String): Mono<ResponseEntity<UserResponse>> {

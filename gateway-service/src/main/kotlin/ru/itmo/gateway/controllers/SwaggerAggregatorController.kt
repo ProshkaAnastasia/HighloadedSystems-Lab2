@@ -183,6 +183,13 @@ class SwaggerAggregatorController {
             result.set<ArrayNode>("tags", allTags)
         }
 
+        val serversArray = objectMapper.createArrayNode()
+        val serverNode = objectMapper.createObjectNode()
+        serverNode.put("url", "http://localhost:8080")
+        serverNode.put("description", "Local gateway")
+        serversArray.add(serverNode)
+        result.set<ArrayNode>("servers", serversArray)
+
         return result
     }
 }
