@@ -36,6 +36,7 @@ dependencies {
     // Spring Cloud
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     
     // R2DBC драйвер PostgreSQL
     implementation("org.postgresql:r2dbc-postgresql:1.0.5.RELEASE")
