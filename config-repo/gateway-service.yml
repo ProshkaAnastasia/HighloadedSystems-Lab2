@@ -102,15 +102,15 @@ logging:
     ru.itmo.gateway: DEBUG
 
 springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operations-sorter: method
-    tags-sorter: alpha
-  
   api-docs:
-    enabled: true
-    path: /v1/api-docs
+    enabled: false     
+            
+  swagger-ui:
+    enabled: true               
+    path: /swagger-ui.html
+    urls:                      
+      - name: "API Gateway"
+        url: /v1/api-docs
 
   use-root-path: true
 
