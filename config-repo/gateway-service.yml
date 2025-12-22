@@ -113,8 +113,6 @@ springdoc:
       - name: "API Gateway"
         url: /v1/api-docs
 
-  use-root-path: true
-
 management:
   endpoint:
     gateway:
