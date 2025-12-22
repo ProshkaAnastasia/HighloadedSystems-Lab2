@@ -1,13 +1,5 @@
 package ru.itmo.gateway.controllers
 
-import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.Operation
-import io.swagger.v3.oas.models.PathItem
-import io.swagger.v3.oas.models.info.Info
-import io.swagger.v3.oas.models.info.Contact
-import io.swagger.v3.oas.models.responses.ApiResponse
-import io.swagger.v3.oas.models.responses.ApiResponses
-import io.swagger.v3.oas.models.servers.Server
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cloud.gateway.route.RouteLocator
 import org.springframework.http.MediaType as HttpMediaType
@@ -17,6 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import org.slf4j.LoggerFactory
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.node.ArrayNode
+
 
 @RestController
 class SwaggerAggregatorController {
@@ -28,26 +24,11 @@ class SwaggerAggregatorController {
     private lateinit var webClient: WebClient
 
     private val logger = LoggerFactory.getLogger(SwaggerAggregatorController::class.java)
+    private val objectMapper = ObjectMapper()
+
 
     @GetMapping(value = ["/v1/api-docs"], produces = [HttpMediaType.APPLICATION_JSON_VALUE])
-    fun aggregateApiDocs(): Mono<OpenAPI> {
-        val baseOpenAPI = OpenAPI()
-            .info(
-                Info()
-                    .title("Gateway API")
-                    .description("Unified API Gateway with Microservices")
-                    .version("1.0.0")
-                    .contact(
-                        Contact()
-                            .name("API Support")
-                    )
-            )
-            .addServersItem(
-                Server()
-                    .url("http://localhost:8080")
-                    .description("Gateway")
-            )
-
+    fun aggregateApiDocs(): Mono<ObjectNode> {
         return Flux.from(routeLocator.routes)
             .filter { route ->
                 route.id != null && !route.id.contains("null")
@@ -62,16 +43,16 @@ class SwaggerAggregatorController {
             }
             .collectMap({ it.first }, { it.second })
             .map { serviceDocs ->
-                mergePathItems(baseOpenAPI, serviceDocs)
+                mergeAllApiDocs(serviceDocs)
             }
             .onErrorResume { error ->
                 logger.error("❌ Error aggregating docs: ${error.message}", error)
-                Mono.just(baseOpenAPI)
+                Mono.just(objectMapper.createObjectNode())
             }
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun fetchServiceDocs(serviceId: String?): Mono<Map<String, Any>> {
+    private fun fetchServiceDocs(serviceId: String?): Mono<ObjectNode> {
         if (serviceId == null) return Mono.empty()
         val port = 8080
 
@@ -81,11 +62,10 @@ class SwaggerAggregatorController {
         return webClient.get()
             .uri(docsUrl)
             .retrieve()
-            .bodyToMono(Map::class.java)
-            .cast(Map::class.java)
-            .map { it as Map<String, Any> }
+            .bodyToMono(String::class.java)
+            .map { json -> objectMapper.readTree(json) as ObjectNode }
             .doOnSuccess { docs ->
-                val pathsCount = (docs["paths"] as? Map<*, *>)?.size ?: 0
+                val pathsCount = docs.get("paths")?.size() ?: 0
                 logger.info("✅ Successfully fetched $pathsCount paths from $serviceId")
             }
             .onErrorResume { error ->
@@ -94,89 +74,115 @@ class SwaggerAggregatorController {
             }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun mergePathItems(
-        baseOpenAPI: OpenAPI,
-        serviceDocs: Map<String, Map<String, Any>>
-    ): OpenAPI {
-        val allPaths = mutableMapOf<String, PathItem>()
+    private fun mergeAllApiDocs(
+        serviceDocs: Map<String, ObjectNode>
+    ): ObjectNode {
+        val baseDoc = serviceDocs.values.firstOrNull() ?: return objectMapper.createObjectNode()
+        
+        val result = baseDoc.deepCopy() as ObjectNode
+        val allPaths = objectMapper.createObjectNode()
+        val allComponents = (baseDoc.get("components")?.deepCopy() as? ObjectNode) ?: objectMapper.createObjectNode()
+        val allTags = objectMapper.createArrayNode()
 
+        logger.info("📦 Starting to merge ${serviceDocs.size} services")
+
+        val tagsSet = mutableSetOf<String>()
+        
         serviceDocs.forEach { (serviceId, docs) ->
-            val paths = docs["paths"] as? Map<String, Map<String, Any>> ?: emptyMap()
-
-            if (paths.isNotEmpty()) {
-                logger.info("📦 Processing $serviceId with ${paths.size} paths")
-            }
-
-            paths.forEach { (path, pathItem) ->
-                val gatewayPath = "/$serviceId$path"
-                logger.debug("Adding path: $gatewayPath")
-
-                val item = PathItem()
-
-                (pathItem["get"] as? Map<String, Any>)?.let {
-                    item.get(convertToOperation(it))
-                }
-                (pathItem["post"] as? Map<String, Any>)?.let {
-                    item.post(convertToOperation(it))
-                }
-                (pathItem["put"] as? Map<String, Any>)?.let {
-                    item.put(convertToOperation(it))
-                }
-                (pathItem["delete"] as? Map<String, Any>)?.let {
-                    item.delete(convertToOperation(it))
-                }
-                (pathItem["patch"] as? Map<String, Any>)?.let {
-                    item.patch(convertToOperation(it))
-                }
-
-                if (item.readOperations().isNotEmpty()) {
-                    allPaths[gatewayPath] = item
+            val tags = docs.get("tags")
+            if (tags != null && tags.isArray) {
+                tags.forEach { tag ->
+                    val tagName = tag.get("name")?.asText()
+                    if (tagName != null && !tagsSet.contains(tagName)) {
+                        tagsSet.add(tagName)
+                        allTags.add(tag)
+                    }
                 }
             }
-        }
 
-        if (allPaths.isNotEmpty()) {
-            logger.info("✨ Total paths aggregated: ${allPaths.size}")
-        }
-
-        baseOpenAPI.paths(
-            io.swagger.v3.oas.models.Paths().apply {
-                allPaths.forEach { (path, item) ->
-                    addPathItem(path, item)
+            val paths = docs.get("paths") as? ObjectNode
+            val components = docs.get("components") as? ObjectNode
+            
+            if (paths != null && paths.size() > 0) {
+                logger.info("  📍 $serviceId: ${paths.size()} paths")
+                
+                val pathNames = paths.fieldNames().asSequence().toList()
+                pathNames.forEach { originalPath ->
+                    val newPath = "/$serviceId$originalPath"
+                    val pathItem = paths.get(originalPath)
+                    allPaths.set<ObjectNode>(newPath, pathItem)
+                    logger.debug("    → $originalPath → $newPath")
                 }
             }
-        )
-
-        return baseOpenAPI
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun convertToOperation(operationMap: Map<String, Any>): Operation {
-        val operation = Operation()
-
-        (operationMap["summary"] as? String)?.let { operation.summary(it) }
-        (operationMap["description"] as? String)?.let { operation.description(it) }
-        (operationMap["tags"] as? List<String>)?.let { operation.tags(it) }
-        (operationMap["operationId"] as? String)?.let { operation.operationId(it) }
-
-        val responses = ApiResponses()
-        (operationMap["responses"] as? Map<String, Map<String, Any>>)?.forEach { (code, response) ->
-            val apiResponse = ApiResponse()
-            (response["description"] as? String)?.let { apiResponse.description(it) }
-            responses.addApiResponse(code, apiResponse)
+            
+            if (components != null) {
+                val schemas = components.get("schemas") as? ObjectNode
+                if (schemas != null && schemas.size() > 0) {
+                    logger.info("  📚 $serviceId: ${schemas.size()} schemas")
+                    
+                    val allSchemasNode = allComponents.get("schemas")
+                        ?.let { it as ObjectNode }
+                        ?: objectMapper.createObjectNode()
+                    
+                    val schemaNames = schemas.fieldNames().asSequence().toList()
+                    schemaNames.forEach { schemaName ->
+                        val schema = schemas.get(schemaName)
+                        allSchemasNode.set<ObjectNode>(schemaName, schema)
+                    }
+                    
+                    allComponents.set<ObjectNode>("schemas", allSchemasNode)
+                }
+                
+                val securitySchemes = components.get("securitySchemes") as? ObjectNode
+                if (securitySchemes != null && securitySchemes.size() > 0) {
+                    logger.info("  🔐 $serviceId: ${securitySchemes.size()} security schemes")
+                    
+                    val allSecuritySchemesNode = allComponents.get("securitySchemes")
+                        ?.let { it as ObjectNode }
+                        ?: objectMapper.createObjectNode()
+                    
+                    val securitySchemeNames = securitySchemes.fieldNames().asSequence().toList()
+                    securitySchemeNames.forEach { schemeName ->
+                        val scheme = securitySchemes.get(schemeName)
+                        allSecuritySchemesNode.set<ObjectNode>(schemeName, scheme)
+                    }
+                    
+                    allComponents.set<ObjectNode>("securitySchemes", allSecuritySchemesNode)
+                }
+                
+                val otherComponentTypes = components.fieldNames()
+                    .asSequence()
+                    .filter { it !in listOf("schemas", "securitySchemes") }
+                    .toList()
+                
+                otherComponentTypes.forEach { componentType ->
+                    val component = components.get(componentType) as? ObjectNode
+                    if (component != null && component.size() > 0) {
+                        val allComponentNode = allComponents.get(componentType)
+                            ?.let { it as ObjectNode }
+                            ?: objectMapper.createObjectNode()
+                        
+                        val itemNames = component.fieldNames().asSequence().toList()
+                        itemNames.forEach { itemName ->
+                            val item = component.get(itemName)
+                            allComponentNode.set<ObjectNode>(itemName, item)
+                        }
+                        
+                        allComponents.set<ObjectNode>(componentType, allComponentNode)
+                    }
+                }
+            }
         }
-        if (responses.isNotEmpty()) {
-            operation.responses(responses)
-        } else {
-            operation.responses(
-                ApiResponses().addApiResponse(
-                    "200",
-                    ApiResponse().description("Success")
-                )
-            )
+
+        logger.info("✨ Merge result: ${allPaths.size()} total paths, ${(allComponents.get("schemas") as? ObjectNode)?.size() ?: 0} total schemas")
+
+        result.set<ObjectNode>("paths", allPaths)
+        result.set<ObjectNode>("components", allComponents)
+        
+        if (allTags.size() > 0) {
+            result.set<ArrayNode>("tags", allTags)
         }
 
-        return operation
+        return result
     }
 }

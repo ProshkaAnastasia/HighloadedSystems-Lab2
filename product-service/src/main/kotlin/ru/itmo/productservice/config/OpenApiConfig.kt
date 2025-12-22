@@ -34,7 +34,7 @@ class OpenApiConfig {
                             .url("https://www.apache.org/licenses/LICENSE-2.0.html")
                     )
             )
-            .addServersItem(Server().url("http://localhost:8082").description("Development"))
-            .addServersItem(Server().url("http://product-service:8082").description("Docker"))
+            .addServersItem(Server().url("http://localhost:8080").description("Development"))
+            .addServersItem(Server().url("http://product-service:8080").description("Docker"))
     }
 }
