@@ -11,10 +11,10 @@ data class ProductResponse(
     val imageUrl: String?,
     val shopId: Long,
     val sellerId: Long,
-    val status: String, // PENDING, APPROVED, REJECTED
+    val status: String,
     val rejectionReason: String?,
-    val averageRating: Double?,
-    val commentsCount: Long?,
+    val averageRating: Double? = null,
+    val commentsCount: Long? = null,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )

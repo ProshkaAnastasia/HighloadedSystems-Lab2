@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
+    kotlin("plugin.allopen") version "1.9.25"  // ← Добавь
     id("org.springframework.boot") version "3.5.7"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -41,6 +42,8 @@ dependencies {
     
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib") 
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin") 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")
     
@@ -51,11 +54,10 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:10.10.0")
     
     // Validation
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("jakarta.validation:jakarta.validation-api:3.0.2")
     
     // OpenAPI/Swagger
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.4.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.14")
     
     // Resilience4j
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
@@ -67,7 +69,6 @@ dependencies {
     
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("io.projectreactor:reactor-test:2024.04.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.testcontainers:testcontainers:1.19.7")
@@ -78,6 +79,10 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
+}
+
+allOpen { 
+    annotation("org.springframework.data.relational.core.mapping.Table")
 }
 
 tasks.withType<Test> {

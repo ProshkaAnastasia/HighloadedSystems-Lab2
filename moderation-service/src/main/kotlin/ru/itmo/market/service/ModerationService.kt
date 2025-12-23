@@ -40,10 +40,6 @@ class ModerationService(
                 }
                 .subscribeOn(Schedulers.boundedElastic())
                 .doOnSuccess { logger.info("Fetched pending products for moderator $moderatorId") }
-                .onErrorMap { throwable ->
-                    logger.error("Failed to fetch pending products", throwable)
-                    RuntimeException("Cannot fetch pending products", throwable)
-                }
             }
     }
     
@@ -55,10 +51,6 @@ class ModerationService(
                 }
                 .subscribeOn(Schedulers.boundedElastic())
                 .doOnSuccess { logger.info("Fetched product $productId") }
-            }
-            .onErrorMap { throwable ->
-                logger.error("Failed to fetch product $productId", throwable)
-                RuntimeException("Cannot fetch product", throwable)
             }
     }
     
@@ -106,10 +98,6 @@ class ModerationService(
                 }
                 .doOnSuccess { logger.info("Product $productId approved by moderator $moderatorId") }
             }
-            .onErrorMap { throwable ->
-                logger.error("Failed to approve product $productId", throwable)
-                RuntimeException("Cannot approve product", throwable)
-            }
     }
     
     @Transactional
@@ -156,10 +144,6 @@ class ModerationService(
                 }
                 .doOnSuccess { logger.info("Product $productId rejected by moderator $moderatorId") }
             }
-            .onErrorMap { throwable ->
-                logger.error("Failed to reject product $productId", throwable)
-                RuntimeException("Cannot reject product", throwable)
-            }
     }
     
     // ========== BULK ОПЕРАЦИИ ==========
@@ -204,14 +188,6 @@ class ModerationService(
                 Mono.just(user)
             } else {
                 Mono.error(ForbiddenException("User is not a moderator"))
-            }
-        }
-        .onErrorMap { throwable ->
-            when {
-                throwable is ForbiddenException -> throwable
-                throwable.message?.contains("404") == true -> 
-                    ResourceNotFoundException("Moderator not found")
-                else -> RuntimeException("Cannot verify moderator", throwable)
             }
         }
     }

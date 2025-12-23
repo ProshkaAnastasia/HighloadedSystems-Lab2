@@ -192,4 +192,94 @@ class ProductController(
         productService.deleteProduct(productId, userId)
         return ResponseEntity.noContent().build()
     }
+
+    /**
+     * GET /api/products/pending
+     * Получить товары на модерации (пагинация)
+     */
+    @GetMapping("/pending")
+    @Operation(
+        summary = "Get pending products",
+        description = "Returns paginated list of products awaiting moderation"
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Pending products retrieved"),
+        ApiResponse(responseCode = "400", description = "Invalid pagination parameters"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun getPendingProducts(
+        @RequestParam(defaultValue = "1")
+        @Min(1, message = "Page must be greater than 0")
+        @Parameter(description = "Page number", example = "1")
+        page: Int,
+        
+        @RequestParam(defaultValue = "20")
+        @Min(1, message = "PageSize must be greater than 0")
+        @Parameter(description = "Items per page", example = "20")
+        pageSize: Int
+    ): ResponseEntity<PaginatedResponse<ProductResponse>> {
+        val response = productService.getPendingProducts(page, pageSize)
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * POST /api/products/{id}/approve
+     * Одобрить товар (только для модератора)
+     */
+    @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve product")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Product approved"),
+        ApiResponse(responseCode = "400", description = "Invalid product ID"),
+        ApiResponse(responseCode = "403", description = "Not authorized"),
+        ApiResponse(responseCode = "404", description = "Product not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun approveProduct(
+        @PathVariable
+        @Min(1, message = "Product ID must be greater than 0")
+        @Parameter(description = "Product ID")
+        id: Long,
+        
+        @RequestParam
+        @Min(1, message = "Moderator ID must be greater than 0")
+        @Parameter(description = "Moderator ID")
+        moderatorId: Long
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.approveProduct(id, moderatorId)
+        return ResponseEntity.ok(response)
+    }
+    
+    /**
+     * POST /api/products/{id}/reject
+     * Отклонить товар (только для модератора)
+     */
+    @PostMapping("/{id}/reject")
+    @Operation(summary = "Reject product")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Product rejected"),
+        ApiResponse(responseCode = "400", description = "Invalid input"),
+        ApiResponse(responseCode = "403", description = "Not authorized"),
+        ApiResponse(responseCode = "404", description = "Product not found"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun rejectProduct(
+        @PathVariable
+        @Min(1, message = "Product ID must be greater than 0")
+        @Parameter(description = "Product ID")
+        id: Long,
+        
+        @RequestParam
+        @Min(1, message = "Moderator ID must be greater than 0")
+        @Parameter(description = "Moderator ID")
+        moderatorId: Long,
+        
+        @RequestParam
+        @Parameter(description = "Rejection reason")
+        reason: String
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.rejectProduct(id, moderatorId, reason)
+        return ResponseEntity.ok(response)
+    }
+
 }

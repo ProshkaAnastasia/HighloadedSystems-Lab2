@@ -29,6 +29,9 @@ spring:
 logging:
   level:
     ru.itmo.market: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.flywaydb: DEBUG
+    org.springframework.security: DEBUG
 
 app:
   moderation:

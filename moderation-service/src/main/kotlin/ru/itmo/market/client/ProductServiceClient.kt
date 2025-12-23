@@ -15,6 +15,9 @@ import ru.itmo.market.exception.BadRequestException
 import java.util.concurrent.CompletableFuture
 import feign.Response
 import feign.codec.ErrorDecoder
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @FeignClient(
     name = "product-service",
@@ -26,7 +29,7 @@ interface ProductServiceClient {
     @GetMapping("/api/products/{id}")
     fun getProductById(@PathVariable id: Long): ProductResponse
     
-    @GetMapping("/api/products")
+    @GetMapping("/api/products/pending")
     fun getPendingProducts(
         @RequestParam page: Int = 1,
         @RequestParam pageSize: Int = 20
@@ -78,7 +81,15 @@ class ProductServiceClientFallback : ProductServiceClient {
 }
 
 
+@Configuration
 class ProductServiceFeignConfig {
+
+    @Bean
+    fun httpMessageConverters(objectMapper: ObjectMapper): HttpMessageConverters {
+        return HttpMessageConverters(
+            MappingJackson2HttpMessageConverter(objectMapper)
+        )
+    }
     
     @Bean
     fun productServiceErrorDecoder(): ErrorDecoder {

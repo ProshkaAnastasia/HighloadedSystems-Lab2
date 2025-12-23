@@ -1,4 +1,4 @@
-package ru.itmo.market.model.dto.response
+package ru.itmo.orderservice.model.dto.response
 
 import java.time.LocalDateTime
 

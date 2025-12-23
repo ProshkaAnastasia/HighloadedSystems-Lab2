@@ -9,5 +9,6 @@ data class UserResponse(
     val firstName: String,
     val lastName: String,
     val roles: Set<String>,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )

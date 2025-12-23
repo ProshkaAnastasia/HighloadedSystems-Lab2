@@ -1,6 +1,7 @@
 package ru.itmo.market.client
 
 import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.context.annotation.Configuration
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import ru.itmo.market.model.dto.response.UserResponse
@@ -10,6 +11,9 @@ import feign.codec.ErrorDecoder
 import ru.itmo.market.exception.ServiceUnavailableException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.exception.BadRequestException
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @FeignClient(
     name = "user-service",
@@ -35,9 +39,9 @@ class UserServiceClientFallback : UserServiceClient {
     }
 }
 
-
+@Configuration
 class UserServiceFeignConfig {
-    
+
     @Bean
     fun userServiceErrorDecoder(): ErrorDecoder {
         return ErrorDecoder { _, response ->
