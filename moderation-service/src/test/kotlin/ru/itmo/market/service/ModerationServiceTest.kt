@@ -15,6 +15,7 @@ import reactor.test.StepVerifier
 import ru.itmo.market.client.ProductServiceClient
 import ru.itmo.market.client.UserServiceClient
 import ru.itmo.market.exception.ForbiddenException
+import ru.itmo.market.model.dto.request.BulkModerationRequest
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.UserResponse
@@ -345,6 +346,279 @@ class ModerationServiceTest {
             .thenReturn(Flux.empty())
 
         StepVerifier.create(moderationService.getProductModerationHistory(999L))
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    // ==================== bulkModerate Tests ====================
+
+    @Test
+    @DisplayName("Should bulk approve multiple products")
+    fun testBulkModerateApprove() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L, 101L),
+            action = "APPROVE",
+            reason = null
+        )
+
+        val approvedProduct1 = testProduct.copy(id = 100L, status = "APPROVED")
+        val approvedProduct2 = testProduct.copy(id = 101L, status = "APPROVED")
+
+        val savedAction1 = ModerationAction(id = 1L, productId = 100L, moderatorId = 1L, actionType = "APPROVE")
+        val savedAction2 = ModerationAction(id = 2L, productId = 101L, moderatorId = 1L, actionType = "APPROVE")
+        val savedAudit1 = ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "APPROVED")
+        val savedAudit2 = ModerationAudit(id = 2L, actionId = 2L, productId = 101L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "APPROVED")
+
+        whenever(userServiceClient.getUserById(1L)).thenReturn(moderatorUser)
+        whenever(productServiceClient.approveProduct(100L, 1L)).thenReturn(approvedProduct1)
+        whenever(productServiceClient.approveProduct(101L, 1L)).thenReturn(approvedProduct2)
+        whenever(moderationActionRepository.save(any<ModerationAction>()))
+            .thenReturn(Mono.just(savedAction1))
+            .thenReturn(Mono.just(savedAction2))
+        whenever(moderationAuditRepository.save(any<ModerationAudit>()))
+            .thenReturn(Mono.just(savedAudit1))
+            .thenReturn(Mono.just(savedAudit2))
+
+        StepVerifier.create(moderationService.bulkModerate(1L, request))
+            .assertNext { result ->
+                assert(result.action == "APPROVE")
+                assert(result.newStatus == "APPROVED")
+            }
+            .assertNext { result ->
+                assert(result.action == "APPROVE")
+                assert(result.newStatus == "APPROVED")
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should bulk reject multiple products")
+    fun testBulkModerateReject() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L, 101L),
+            action = "REJECT",
+            reason = "Low quality"
+        )
+
+        val rejectedProduct1 = testProduct.copy(id = 100L, status = "REJECTED", rejectionReason = "Low quality")
+        val rejectedProduct2 = testProduct.copy(id = 101L, status = "REJECTED", rejectionReason = "Low quality")
+
+        val savedAction1 = ModerationAction(id = 1L, productId = 100L, moderatorId = 1L, actionType = "REJECT", reason = "Low quality")
+        val savedAction2 = ModerationAction(id = 2L, productId = 101L, moderatorId = 1L, actionType = "REJECT", reason = "Low quality")
+        val savedAudit1 = ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "REJECTED")
+        val savedAudit2 = ModerationAudit(id = 2L, actionId = 2L, productId = 101L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "REJECTED")
+
+        whenever(userServiceClient.getUserById(1L)).thenReturn(moderatorUser)
+        whenever(productServiceClient.rejectProduct(100L, 1L, "Low quality")).thenReturn(rejectedProduct1)
+        whenever(productServiceClient.rejectProduct(101L, 1L, "Low quality")).thenReturn(rejectedProduct2)
+        whenever(moderationActionRepository.save(any<ModerationAction>()))
+            .thenReturn(Mono.just(savedAction1))
+            .thenReturn(Mono.just(savedAction2))
+        whenever(moderationAuditRepository.save(any<ModerationAudit>()))
+            .thenReturn(Mono.just(savedAudit1))
+            .thenReturn(Mono.just(savedAudit2))
+
+        StepVerifier.create(moderationService.bulkModerate(1L, request))
+            .assertNext { result ->
+                assert(result.action == "REJECT")
+                assert(result.reason == "Low quality")
+                assert(result.newStatus == "REJECTED")
+            }
+            .assertNext { result ->
+                assert(result.action == "REJECT")
+                assert(result.reason == "Low quality")
+                assert(result.newStatus == "REJECTED")
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should bulk reject with default reason when not provided")
+    fun testBulkModerateRejectWithDefaultReason() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L),
+            action = "REJECT",
+            reason = null
+        )
+
+        val rejectedProduct = testProduct.copy(id = 100L, status = "REJECTED", rejectionReason = "No reason provided")
+        val savedAction = ModerationAction(id = 1L, productId = 100L, moderatorId = 1L, actionType = "REJECT", reason = "No reason provided")
+        val savedAudit = ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "REJECTED")
+
+        whenever(userServiceClient.getUserById(1L)).thenReturn(moderatorUser)
+        whenever(productServiceClient.rejectProduct(100L, 1L, "No reason provided")).thenReturn(rejectedProduct)
+        whenever(moderationActionRepository.save(any<ModerationAction>())).thenReturn(Mono.just(savedAction))
+        whenever(moderationAuditRepository.save(any<ModerationAudit>())).thenReturn(Mono.just(savedAudit))
+
+        StepVerifier.create(moderationService.bulkModerate(1L, request))
+            .assertNext { result ->
+                assert(result.action == "REJECT")
+                assert(result.reason == "No reason provided")
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should fail bulk moderation for regular user")
+    fun testBulkModerateForbidden() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L),
+            action = "APPROVE",
+            reason = null
+        )
+
+        whenever(userServiceClient.getUserById(3L)).thenReturn(regularUser)
+
+        StepVerifier.create(moderationService.bulkModerate(3L, request))
+            .expectError(ForbiddenException::class.java)
+            .verify(Duration.ofSeconds(10))
+    }
+
+    // ==================== Edge Cases ====================
+
+    @Test
+    @DisplayName("Should get pending product by ID for admin")
+    fun testGetPendingProductByIdForAdmin() {
+        whenever(userServiceClient.getUserById(2L)).thenReturn(adminUser)
+        whenever(productServiceClient.getPendingProductById(100L)).thenReturn(testProduct)
+
+        StepVerifier.create(moderationService.getPendingProductById(2L, 100L))
+            .assertNext { product ->
+                assert(product.id == 100L)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should approve product as admin")
+    fun testApproveProductAsAdmin() {
+        val approvedProduct = testProduct.copy(status = "APPROVED")
+        val savedAction = ModerationAction(id = 1L, productId = 100L, moderatorId = 2L, actionType = "APPROVE")
+        val savedAudit = ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 2L, oldStatus = "PENDING", newStatus = "APPROVED")
+
+        whenever(userServiceClient.getUserById(2L)).thenReturn(adminUser)
+        whenever(productServiceClient.approveProduct(100L, 2L)).thenReturn(approvedProduct)
+        whenever(moderationActionRepository.save(any<ModerationAction>())).thenReturn(Mono.just(savedAction))
+        whenever(moderationAuditRepository.save(any<ModerationAudit>())).thenReturn(Mono.just(savedAudit))
+
+        StepVerifier.create(moderationService.approveProduct(2L, 100L))
+            .assertNext { result ->
+                assert(result.productId == 100L)
+                assert(result.moderatorId == 2L)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should reject product as admin")
+    fun testRejectProductAsAdmin() {
+        val rejectedProduct = testProduct.copy(status = "REJECTED", rejectionReason = "Policy violation")
+        val savedAction = ModerationAction(id = 1L, productId = 100L, moderatorId = 2L, actionType = "REJECT", reason = "Policy violation")
+        val savedAudit = ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 2L, oldStatus = "PENDING", newStatus = "REJECTED")
+
+        whenever(userServiceClient.getUserById(2L)).thenReturn(adminUser)
+        whenever(productServiceClient.rejectProduct(100L, 2L, "Policy violation")).thenReturn(rejectedProduct)
+        whenever(moderationActionRepository.save(any<ModerationAction>())).thenReturn(Mono.just(savedAction))
+        whenever(moderationAuditRepository.save(any<ModerationAudit>())).thenReturn(Mono.just(savedAudit))
+
+        StepVerifier.create(moderationService.rejectProduct(2L, 100L, "Policy violation"))
+            .assertNext { result ->
+                assert(result.productId == 100L)
+                assert(result.moderatorId == 2L)
+                assert(result.reason == "Policy violation")
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should handle multiple pages of pending products")
+    fun testGetPendingProductsWithPagination() {
+        val paginatedResponse = PaginatedResponse(
+            data = listOf(testProduct),
+            totalElements = 100,
+            totalPages = 5,
+            page = 2,
+            pageSize = 20
+        )
+
+        whenever(userServiceClient.getUserById(1L)).thenReturn(moderatorUser)
+        whenever(productServiceClient.getPendingProducts(2, 20)).thenReturn(paginatedResponse)
+
+        StepVerifier.create(moderationService.getPendingProducts(1L, 2, 20))
+            .assertNext { response ->
+                assert(response.page == 2)
+                assert(response.totalPages == 5)
+                assert(response.totalElements == 100L)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should handle empty pending products list")
+    fun testGetPendingProductsEmpty() {
+        val paginatedResponse = PaginatedResponse(
+            data = emptyList<ProductResponse>(),
+            totalElements = 0,
+            totalPages = 0,
+            page = 1,
+            pageSize = 20
+        )
+
+        whenever(userServiceClient.getUserById(1L)).thenReturn(moderatorUser)
+        whenever(productServiceClient.getPendingProducts(1, 20)).thenReturn(paginatedResponse)
+
+        StepVerifier.create(moderationService.getPendingProducts(1L, 1, 20))
+            .assertNext { response ->
+                assert(response.data.isEmpty())
+                assert(response.totalElements == 0L)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should get moderation history with many actions")
+    fun testGetModerationHistoryMultiple() {
+        val actions = (1..5).map { i ->
+            ModerationAction(
+                id = i.toLong(),
+                productId = (100 + i).toLong(),
+                moderatorId = 1L,
+                actionType = if (i % 2 == 0) "APPROVE" else "REJECT",
+                reason = if (i % 2 == 1) "Reason $i" else null
+            )
+        }
+
+        whenever(moderationActionRepository.findByModeratorIdOrderByCreatedAtDesc(1L))
+            .thenReturn(Flux.fromIterable(actions))
+
+        StepVerifier.create(moderationService.getModerationHistory(1L))
+            .expectNextCount(5)
+            .expectComplete()
+            .verify(Duration.ofSeconds(10))
+    }
+
+    @Test
+    @DisplayName("Should get product moderation history with multiple audits")
+    fun testGetProductModerationHistoryMultiple() {
+        val audits = listOf(
+            ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "APPROVED"),
+            ModerationAudit(id = 2L, actionId = 2L, productId = 100L, moderatorId = 2L, oldStatus = "APPROVED", newStatus = "REJECTED"),
+            ModerationAudit(id = 3L, actionId = 3L, productId = 100L, moderatorId = 1L, oldStatus = "REJECTED", newStatus = "APPROVED")
+        )
+
+        whenever(moderationAuditRepository.findByProductIdOrderByCreatedAtDesc(100L))
+            .thenReturn(Flux.fromIterable(audits))
+
+        StepVerifier.create(moderationService.getProductModerationHistory(100L))
+            .expectNextCount(3)
             .expectComplete()
             .verify(Duration.ofSeconds(10))
     }

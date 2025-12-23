@@ -282,4 +282,185 @@ class ModerationControllerTest {
             .expectComplete()
             .verify(Duration.ofSeconds(5))
     }
+
+    // ==================== Additional Edge Case Tests ====================
+
+    @Test
+    @DisplayName("GET /products - Should return empty list when no pending products")
+    fun testGetPendingProductsEmpty() {
+        val emptyResponse = PaginatedResponse(
+            data = emptyList<ProductResponse>(),
+            totalElements = 0,
+            totalPages = 0,
+            page = 1,
+            pageSize = 20
+        )
+
+        whenever(moderationService.getPendingProducts(1L, 1, 20))
+            .thenReturn(Mono.just(emptyResponse))
+
+        StepVerifier.create(controller.getPendingProducts(1L, 1, 20))
+            .assertNext { response ->
+                assert(response.statusCode == HttpStatus.OK)
+                assert(response.body?.data?.isEmpty() == true)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("GET /products - Should handle pagination parameters")
+    fun testGetPendingProductsPagination() {
+        val paginatedResponse = PaginatedResponse(
+            data = listOf(testProduct),
+            totalElements = 50,
+            totalPages = 5,
+            page = 3,
+            pageSize = 10
+        )
+
+        whenever(moderationService.getPendingProducts(1L, 3, 10))
+            .thenReturn(Mono.just(paginatedResponse))
+
+        StepVerifier.create(controller.getPendingProducts(1L, 3, 10))
+            .assertNext { response ->
+                assert(response.statusCode == HttpStatus.OK)
+                assert(response.body?.page == 3)
+                assert(response.body?.pageSize == 10)
+                assert(response.body?.totalPages == 5)
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("POST /products/{id}/approve - Should return 404 for non-existent product")
+    fun testApproveProductNotFound() {
+        whenever(moderationService.approveProduct(1L, 999L))
+            .thenReturn(Mono.error(ResourceNotFoundException("Product not found")))
+
+        StepVerifier.create(controller.approveProduct(1L, 999L))
+            .expectError(ResourceNotFoundException::class.java)
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("POST /products/{id}/reject - Should return 404 for non-existent product")
+    fun testRejectProductNotFound() {
+        val request = RejectProductRequest(reason = "Bad product")
+
+        whenever(moderationService.rejectProduct(1L, 999L, "Bad product"))
+            .thenReturn(Mono.error(ResourceNotFoundException("Product not found")))
+
+        StepVerifier.create(controller.rejectProduct(1L, 999L, request))
+            .expectError(ResourceNotFoundException::class.java)
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("POST /bulk - Should bulk reject products with reason")
+    fun testBulkModerateReject() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L, 101L),
+            action = "REJECT",
+            reason = "Policy violation"
+        )
+
+        val result1 = rejectResult.copy(productId = 100L, reason = "Policy violation")
+        val result2 = rejectResult.copy(productId = 101L, reason = "Policy violation")
+
+        whenever(moderationService.bulkModerate(1L, request))
+            .thenReturn(Flux.just(result1, result2))
+
+        StepVerifier.create(controller.bulkModerate(1L, request))
+            .assertNext { result ->
+                assert(result.productId == 100L)
+                assert(result.action == "REJECT")
+            }
+            .assertNext { result ->
+                assert(result.productId == 101L)
+                assert(result.action == "REJECT")
+            }
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("POST /bulk - Should return 403 for non-moderator")
+    fun testBulkModerateForbidden() {
+        val request = BulkModerationRequest(
+            productIds = listOf(100L),
+            action = "APPROVE",
+            reason = null
+        )
+
+        whenever(moderationService.bulkModerate(3L, request))
+            .thenReturn(Flux.error(ForbiddenException("User is not a moderator")))
+
+        StepVerifier.create(controller.bulkModerate(3L, request))
+            .expectError(ForbiddenException::class.java)
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("GET /history - Should return empty history")
+    fun testGetModerationHistoryEmpty() {
+        whenever(moderationService.getModerationHistory(999L))
+            .thenReturn(Flux.empty())
+
+        StepVerifier.create(controller.getModerationHistory(999L))
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("GET /products/{id}/history - Should return empty product history")
+    fun testGetProductModerationHistoryEmpty() {
+        whenever(moderationService.getProductModerationHistory(999L))
+            .thenReturn(Flux.empty())
+
+        StepVerifier.create(controller.getProductModerationHistory(999L))
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("GET /products/{id}/history - Should return multiple audits")
+    fun testGetProductModerationHistoryMultiple() {
+        val audits = listOf(
+            ModerationAudit(id = 1L, actionId = 1L, productId = 100L, moderatorId = 1L, oldStatus = "PENDING", newStatus = "APPROVED"),
+            ModerationAudit(id = 2L, actionId = 2L, productId = 100L, moderatorId = 2L, oldStatus = "APPROVED", newStatus = "REJECTED"),
+            ModerationAudit(id = 3L, actionId = 3L, productId = 100L, moderatorId = 1L, oldStatus = "REJECTED", newStatus = "APPROVED")
+        )
+
+        whenever(moderationService.getProductModerationHistory(100L))
+            .thenReturn(Flux.fromIterable(audits))
+
+        StepVerifier.create(controller.getProductModerationHistory(100L))
+            .expectNextCount(3)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
+
+    @Test
+    @DisplayName("GET /history - Should return multiple actions")
+    fun testGetModerationHistoryMultiple() {
+        val actions = (1..5).map { i ->
+            ModerationAction(
+                id = i.toLong(),
+                productId = (100 + i).toLong(),
+                moderatorId = 1L,
+                actionType = if (i % 2 == 0) "APPROVE" else "REJECT",
+                reason = if (i % 2 == 1) "Reason $i" else null
+            )
+        }
+
+        whenever(moderationService.getModerationHistory(1L))
+            .thenReturn(Flux.fromIterable(actions))
+
+        StepVerifier.create(controller.getModerationHistory(1L))
+            .expectNextCount(5)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5))
+    }
 }
