@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: moderation-service-test
+  main:
+    allow-bean-definition-overriding: true
+  r2dbc:
+    url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  flyway:
+    enabled: false
+
+app:
+  jwt:
+    secret: test-jwt-secret-key-for-testing-purposes-only-32-chars
+  moderation:
+    batch-size: 10
+    timeout: 30
+
+logging:
+  level:
+    ru.itmo.market: DEBUG
+    org.springframework.security: DEBUG
