@@ -271,16 +271,12 @@ class UserService(
         if (userId <= 0) {
             return Mono.error(BadRequestException("Invalid user ID: $userId"))
         }
-        
+
         return userRepository.findById(userId)
             .switchIfEmpty(Mono.error(ResourceNotFoundException("User not found with ID: $userId")))
             .flatMap {
-                // Удаляем все роли пользователя
                 userRoleRepository.deleteByUserId(userId)
-            }
-            .flatMap {
-                // Удаляем самого пользователя
-                userRepository.deleteById(userId)
+                    .then(userRepository.deleteById(userId))
             }
     }
     

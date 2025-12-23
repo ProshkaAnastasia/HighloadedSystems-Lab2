@@ -233,9 +233,6 @@ class UserController(
     )
     fun deleteUser(@PathVariable userId: Long): Mono<ResponseEntity<Void>> {
         return userService.deleteUser(userId)
-            .map { ResponseEntity.status(HttpStatus.NO_CONTENT).build<Void>() }
-            .switchIfEmpty(
-                Mono.just(ResponseEntity.notFound().build())
-            )
+            .then(Mono.just(ResponseEntity.noContent().build<Void>()))
     }
 }

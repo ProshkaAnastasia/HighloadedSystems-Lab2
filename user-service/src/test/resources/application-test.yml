@@ -1,7 +1,18 @@
 spring:
   application:
     name: user-service-test
-  
+
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+
+  config:
+    import: "optional:"
+
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/itmo_market_test
     username: itmo_user
@@ -9,7 +20,7 @@ spring:
     pool:
       max-acquire-time: 2000ms
       validation-query: SELECT 1
-  
+
   flyway:
     enabled: true
     baseline-on-migrate: true
