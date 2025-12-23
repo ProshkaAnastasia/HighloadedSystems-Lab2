@@ -80,7 +80,7 @@ class GlobalExceptionHandler {
                     errors = errors
                 ))
         )
-    }
+    } 
     
     @ExceptionHandler(Exception::class)
     fun handleGlobalException(

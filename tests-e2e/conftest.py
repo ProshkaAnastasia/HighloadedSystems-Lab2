@@ -7,8 +7,11 @@ import pytest
 import requests
 from tenacity import retry, stop_after_delay, wait_fixed
 
+pytest_plugins = ["fixtures_data"]
+
 GATEWAY_URL = "http://localhost:8080"
 COMPOSE_FILE = "docker-compose.yml"
+EUREKA_URL = "http://localhost:8761"
 
 
 # ---------- Docker-compose lifecycle ----------
@@ -38,32 +41,167 @@ def docker_compose() -> Iterator[None]:
     )
 
 
-@retry(stop=stop_after_delay(240), wait=wait_fixed(5))
+@retry(stop=stop_after_delay(500), wait=wait_fixed(5))
 def _wait_gateway_health() -> None:
     """Ждём, пока gateway начнёт отвечать по /actuator/health."""
     resp = requests.get(f"{GATEWAY_URL}/actuator/health", timeout=10)
     resp.raise_for_status()
 
 
-@retry(stop=stop_after_delay(180), wait=wait_fixed(5))
+@retry(stop=stop_after_delay(500), wait=wait_fixed(5))
 def _wait_eureka() -> None:
     """Ждём UI Eureka, чтобы быть уверенными, что сервисы зарегистрированы."""
     resp = requests.get("http://localhost:8761/", timeout=10)
     resp.raise_for_status()
 
 
-@pytest.fixture(scope="session")
+@retry(stop=stop_after_delay(500), wait=wait_fixed(5))
+def _wait_service_healthy(service_name: str, service_id: str) -> None:
+    """
+    Проверяет здоровье сервиса через Gateway.
+    
+    Gateway маршрутизирует: localhost:8080/{service_id}/actuator/health
+    """
+    try:
+        url = f"{GATEWAY_URL}/{service_id}/actuator/health"
+        resp = requests.get(url, timeout=10)
+        
+        if resp.status_code == 503:
+            print(f"[...] {service_name}: 503 Service Unavailable")
+            raise Exception(f"{service_name} unavailable (503)")
+        
+        if resp.status_code != 200:
+            print(f"[...] {service_name}: {resp.status_code}")
+            raise Exception(f"{service_name} returned {resp.status_code}")
+        
+        health_data = resp.json()
+        status = health_data.get("status", "UNKNOWN")
+        
+        print(f"[✓] {service_name} is UP (status: {status})")
+        
+    except requests.RequestException as e:
+        print(f"[...] {service_name}: {type(e).__name__}")
+        raise
+
+
+@pytest.fixture(scope="session", autouse=True)
 def infrastructure_ready(docker_compose) -> str:
-    """Инфраструктура готова: gateway + eureka."""
+    """
+    Инфраструктура готова: gateway + eureka + все микросервисы.
+    """
+    print("\n" + "="*70)
+    print("WAITING FOR INFRASTRUCTURE...")
+    print("="*70)
+    
+    print("\n[1/6] Waiting for Gateway...")
     _wait_gateway_health()
+    
+    print("\n[2/6] Waiting for Eureka...")
     _wait_eureka()
+    
+    services = [
+        ("User Service", "user-service"),
+        ("Product Service", "product-service"),
+        ("Order Service", "order-service"),
+        ("Moderation Service", "moderation-service"),
+    ]
+    
+    for idx, (service_name, service_id) in enumerate(services, start=3):
+        print(f"\n[{idx}/6] Waiting for {service_name}...")
+        _wait_service_healthy(service_name, service_id)
+    
+    print("\n" + "="*70)
+    print("[✓] ALL INFRASTRUCTURE READY!")
+    print("="*70 + "\n")
+    
     return GATEWAY_URL
 
 
-# ---------- PostgreSQL connections ----------
+# ============================================================================
+# PYTEST HOOKS
+# ============================================================================
+
+def pytest_configure(config):
+    """
+    Pre-test setup hook.
+    Runs BEFORE test collection.
+    Starts Docker infrastructure and waits for all services.
+    """
+    
+    _print_header("PRE-TEST SETUP: Starting infrastructure")
+    
+    # Stop any existing containers
+    print("Stopping old containers...")
+    subprocess.run(
+        ["docker-compose", "-f", COMPOSE_FILE, "down", "-v"],
+        check=False,
+        capture_output=True,
+    )
+    
+    # Start new containers
+    print("Starting docker-compose with --build...")
+    result = subprocess.run(
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"],
+        capture_output=True,
+        text=True,
+    )
+    
+    if result.returncode != 0:
+        _print_error(f"docker-compose failed: {result.stderr}")
+        raise SystemExit(1)
+    
+    _print_success("Docker-compose started")
+    
+    # Wait for infrastructure
+    _print_header("WAITING FOR SERVICES TO BE READY")
+    
+    try:
+        _print_step(1, 6, "Waiting for API Gateway")
+        _check_gateway()
+        
+        _print_step(2, 6, "Waiting for Service Registry (Eureka)")
+        _check_eureka()
+        
+        # Wait for each microservice
+        for idx, (service_name, service_id) in enumerate(SERVICES, start=3):
+            _print_step(idx, 6, f"Waiting for {service_name}")
+            _check_service(service_name, service_id)
+        
+        _print_header("[✓] ALL INFRASTRUCTURE READY!")
+        print()
+        
+    except Exception as e:
+        _print_error(f"Infrastructure setup failed: {e}")
+        raise SystemExit(1)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Post-test cleanup hook. Runs AFTER all tests."""
+    _print_header("TEARDOWN: Stopping infrastructure")
+    
+    subprocess.run(
+        ["docker-compose", "-f", COMPOSE_FILE, "down", "-v"],
+        check=False,
+        capture_output=True,
+    )
+    
+    _print_success("Docker-compose stopped")
+    print()
+
+
+# ============================================================================
+# DATABASE CONNECTIONS
+# ============================================================================
 
 @contextmanager
-def pg_connection(host: str, port: int, db: str, user: str = "itmouser", password: str = "itmopassword"):
+def pg_connection(
+    host: str,
+    port: int,
+    db: str,
+    user: str = "itmouser",
+    password: str = "itmopassword"
+):
+    """Context manager for PostgreSQL connections."""
     conn = psycopg2.connect(
         host=host,
         port=port,
@@ -77,35 +215,42 @@ def pg_connection(host: str, port: int, db: str, user: str = "itmouser", passwor
         conn.close()
 
 
+# ============================================================================
+# SESSION-SCOPED FIXTURES
+# ============================================================================
+
 @pytest.fixture(scope="session")
-def db_user(infrastructure_ready):
-    """БД user-service: postgres-user:5401 → itmomarket_user."""
+def db_user():
+    """User Service Database (postgres-user:5401)"""
     with pg_connection("localhost", 5401, "itmomarket_user") as conn:
         yield conn
 
 
 @pytest.fixture(scope="session")
-def db_product(infrastructure_ready):
-    """БД product-service: postgres-product:5402 → itmomarket_product."""
+def db_product():
+    """Product Service Database (postgres-product:5402)"""
     with pg_connection("localhost", 5402, "itmomarket_product") as conn:
         yield conn
 
 
 @pytest.fixture(scope="session")
-def db_order(infrastructure_ready):
-    """БД order-service: postgres-order:5403 → itmomarket_order."""
+def db_order():
+    """Order Service Database (postgres-order:5403)"""
     with pg_connection("localhost", 5403, "itmomarket_order") as conn:
         yield conn
 
 
 @pytest.fixture(scope="session")
-def db_moderation(infrastructure_ready):
-    """БД moderation-service: postgres-moderation:5404 → itmomarket_moderation."""
+def db_moderation():
+    """Moderation Service Database (postgres-moderation:5404)"""
     with pg_connection("localhost", 5404, "itmomarket_moderation") as conn:
         yield conn
 
 
-# ---------- Очистка БД между тестами ----------
+# ============================================================================
+# FUNCTION-SCOPED FIXTURES
+# ============================================================================
+
 
 @pytest.fixture(autouse=True)
 def clean_databases(db_user, db_product, db_order, db_moderation):
