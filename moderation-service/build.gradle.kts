@@ -69,10 +69,11 @@ dependencies {
     
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("io.projectreactor:reactor-test:2024.04.0")
+    testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
-    testImplementation("org.testcontainers:testcontainers:1.19.7")
-    testImplementation("org.testcontainers:postgresql:1.19.7")
+    testImplementation("org.mockito:mockito-core:5.2.0")
+    testImplementation("io.r2dbc:r2dbc-h2:1.0.0.RELEASE")
+    testImplementation("com.h2database:h2:2.2.224")
 }
 
 kotlin {

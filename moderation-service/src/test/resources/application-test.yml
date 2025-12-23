@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: moderation-service-test
+
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+
+  config:
+    import: "optional:"
+
+  r2dbc:
+    url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+
+  flyway:
+    enabled: false
+
+server:
+  port: 0
+
+eureka:
+  client:
+    enabled: false
+
+feign:
+  circuitbreaker:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    ru.itmo.market: INFO
