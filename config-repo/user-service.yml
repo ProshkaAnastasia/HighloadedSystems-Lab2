@@ -42,8 +42,8 @@ springdoc:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:your-secret-key-min-32-chars-long-here}
-    expiration: 86400000
+    secret: ${JWT_SECRET:itmo-market-super-secret-jwt-key-min-32-characters-long-2025}
+    expiration: 86400000  # 24 hours in milliseconds
 
 eureka:
   instance:

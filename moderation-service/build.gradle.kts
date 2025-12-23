@@ -38,9 +38,19 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
     implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
+
+    // Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
     
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")
     
@@ -55,7 +65,7 @@ dependencies {
     implementation("jakarta.validation:jakarta.validation-api:3.0.2")
     
     // OpenAPI/Swagger
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.4.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.14")
     
     // Resilience4j
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
@@ -67,6 +77,7 @@ dependencies {
     
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("io.projectreactor:reactor-test:2024.04.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")

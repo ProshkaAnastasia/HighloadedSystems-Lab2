@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.jar
+*.gradle.kts.lock
+
+# IDEA/IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+*.swp
+*~
+
+# Test output
+test-output/
