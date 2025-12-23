@@ -222,6 +222,24 @@ class ProductController(
         return ResponseEntity.ok(response)
     }
 
+    @GetMapping("/pending/{id}")
+    @Operation(
+        summary = "Get pending product by id",
+        description = "Returns pending product"
+    )
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Product retrieved"),
+        ApiResponse(responseCode = "400", description = "Invalid product id"),
+        ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+    fun getPendingProductById(
+        @PathVariable 
+        id: Long
+    ): ResponseEntity<ProductResponse> {
+        val response = productService.getPendingProductById(id)
+        return ResponseEntity.ok(response)
+    }
+
     /**
      * POST /api/products/{id}/approve
      * Одобрить товар (только для модератора)

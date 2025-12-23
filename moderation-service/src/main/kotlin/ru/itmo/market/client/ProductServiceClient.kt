@@ -26,8 +26,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 )
 interface ProductServiceClient {
     
-    @GetMapping("/api/products/{id}")
-    fun getProductById(@PathVariable id: Long): ProductResponse
+    @GetMapping("/api/products/pending/{id}")
+    fun getPendingProductById(
+        @PathVariable id: Long
+    ): ProductResponse
     
     @GetMapping("/api/products/pending")
     fun getPendingProducts(
@@ -55,7 +57,7 @@ interface ProductServiceClient {
 @org.springframework.stereotype.Component
 class ProductServiceClientFallback : ProductServiceClient {
     
-    override fun getProductById(id: Long): ProductResponse {
+    override fun getPendingProductById(id: Long): ProductResponse {
         throw ServiceUnavailableException(
             message = "Product Service недоступен. ID: $id"
         )

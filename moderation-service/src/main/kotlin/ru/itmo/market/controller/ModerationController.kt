@@ -56,7 +56,6 @@ class ModerationController(
     ): Mono<ResponseEntity<PaginatedResponse<ProductResponse>>> {
         return moderationService.getPendingProducts(moderatorId, page, pageSize)
             .map { ResponseEntity.ok(it) }
-            //.onErrorReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).build())
     }
     
     @GetMapping("/products/{id}")
@@ -81,7 +80,6 @@ class ModerationController(
     ): Mono<ResponseEntity<ProductResponse>> {
         return moderationService.getPendingProductById(moderatorId, id)
             .map { ResponseEntity.ok(it) }
-            //.onErrorReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).build())
     }
     
     // ========== POST МЕТОДЫ ==========
@@ -108,7 +106,6 @@ class ModerationController(
     ): Mono<ResponseEntity<ModerationResultResponse>> {
         return moderationService.approveProduct(moderatorId, id)
             .map { ResponseEntity.status(HttpStatus.CREATED).body(it) }
-            .onErrorReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).build())
     }
     
     @PostMapping("/products/{id}/reject")
@@ -138,7 +135,6 @@ class ModerationController(
     ): Mono<ResponseEntity<ModerationResultResponse>> {
         return moderationService.rejectProduct(moderatorId, id, request.reason)
             .map { ResponseEntity.status(HttpStatus.CREATED).body(it) }
-            .onErrorReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).build())
     }
     
     @PostMapping("/bulk")
