@@ -1,5 +1,6 @@
 package ru.itmo.userservice.service
 
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
@@ -16,13 +17,12 @@ import ru.itmo.userservice.model.enums.UserRole
 import ru.itmo.userservice.repository.UserRepository
 import ru.itmo.userservice.repository.UserRoleRepository
 import java.time.LocalDateTime
-import java.security.MessageDigest
-import java.util.Base64
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val userRoleRepository: UserRoleRepository
+    private val userRoleRepository: UserRoleRepository,
+    private val passwordEncoder: PasswordEncoder
 ) {
     
     /**
@@ -328,13 +328,38 @@ class UserService(
     }
     
     /**
-     * Хеширование пароля
-     * ПРИМЕЧАНИЕ: В продакшене нужно использовать BCryptPasswordEncoder
+     * Хеширование пароля используя BCrypt
      */
     private fun hashPassword(password: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(password.toByteArray())
-        return Base64.getEncoder().encodeToString(hash)
+        return passwordEncoder.encode(password)
+    }
+
+    /**
+     * Проверка пароля
+     */
+    fun verifyPassword(rawPassword: String, encodedPassword: String): Boolean {
+        return passwordEncoder.matches(rawPassword, encodedPassword)
+    }
+
+    /**
+     * Аутентификация пользователя
+     * THROWS: BadRequestException если username или password некорректны
+     * THROWS: ResourceNotFoundException если пользователь не найден
+     */
+    fun authenticate(username: String, password: String): Mono<User> {
+        if (username.isBlank() || password.isBlank()) {
+            return Mono.error(BadRequestException("Username and password cannot be empty"))
+        }
+
+        return userRepository.findByUsername(username)
+            .switchIfEmpty(Mono.error(BadRequestException("Invalid username or password")))
+            .flatMap { user ->
+                if (verifyPassword(password, user.password)) {
+                    Mono.just(user)
+                } else {
+                    Mono.error(BadRequestException("Invalid username or password"))
+                }
+            }
     }
     
     /**

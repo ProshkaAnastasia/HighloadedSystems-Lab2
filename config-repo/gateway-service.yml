@@ -101,13 +101,21 @@ logging:
     org.springframework.web.reactive: DEBUG
     ru.itmo.gateway: DEBUG
 
-springdoc: 
+springdoc:
   swagger-ui:
-    enabled: true               
+    enabled: true
     path: /swagger-ui.html
-    urls:                      
+    urls:
       - name: "API Gateway"
         url: /v1/api-docs
+      - name: "User Service"
+        url: /user-service/v1/api-docs
+      - name: "Product Service"
+        url: /product-service/v1/api-docs
+      - name: "Order Service"
+        url: /order-service/v1/api-docs
+      - name: "Moderation Service"
+        url: /moderation-service/v1/api-docs
 
 management:
   endpoint:

@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: moderation-service
+
+# JWT configuration with default (will be overridden by config-server if available)
+app:
+  jwt:
+    secret: ${JWT_SECRET:itmo-market-super-secret-jwt-key-min-32-characters-long-2025}
+  moderation:
+    batch-size: 10
+    timeout: 30
+
+# Swagger/OpenAPI configuration
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  api-docs:
+    path: /v1/api-docs
+
+# Logging
+logging:
+  level:
+    ru.itmo.market: DEBUG
+    org.springframework.security: DEBUG

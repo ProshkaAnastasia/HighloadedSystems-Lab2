@@ -24,23 +24,29 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
-    
+
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    
+
     // OpenAPI/Swagger for unified docs
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.3")
     implementation("org.springdoc:springdoc-openapi-starter-webflux-api:2.8.3")
-    
+
     // Resilience4j
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
     // Logging
     implementation("org.springframework.boot:spring-boot-starter-logging")
+
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
 }
 
 dependencyManagement {

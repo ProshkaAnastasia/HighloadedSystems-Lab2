@@ -1,4 +1,4 @@
-package ru.itmo.market.config
+package ru.itmo.userservice.config
 
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
@@ -16,8 +16,8 @@ class OpenApiConfig {
         val securitySchemeName = "bearer-jwt"
         return OpenAPI().apply {
             info = Info().apply {
-                title = "ITMO Market - Moderation Service API"
-                description = "REST API для модерации товаров (Reactor + R2DBC). Требуется JWT токен с ролью MODERATOR или ADMIN."
+                title = "ITMO Market - User Service API"
+                description = "REST API для управления пользователями (Reactor + R2DBC). Включает регистрацию и аутентификацию с JWT."
                 version = "1.0.0"
             }
             components = Components().apply {
@@ -26,7 +26,7 @@ class OpenApiConfig {
                     type = SecurityScheme.Type.HTTP
                     scheme = "bearer"
                     bearerFormat = "JWT"
-                    description = "Введите JWT токен, полученный из /api/auth/login в user-service"
+                    description = "Введите JWT токен, полученный из /api/auth/login"
                 })
             }
             addSecurityItem(SecurityRequirement().addList(securitySchemeName))
