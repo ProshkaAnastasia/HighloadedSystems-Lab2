@@ -32,31 +32,41 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    
+    implementation("org.springframework.boot:spring-boot-starter-logging")
+
     // Spring Cloud
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     implementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
-    
+
+    // Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.security:spring-security-crypto")
+
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+
     // R2DBC драйвер PostgreSQL
     implementation("org.postgresql:r2dbc-postgresql:1.0.5.RELEASE")
     implementation("org.postgresql:postgresql")
-    
+
     // Flyway для миграций
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
-    
+
     // Kotlin поддержка
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    
+
     // OpenAPI / Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.14")
-    
+
     // Dev tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
@@ -65,6 +75,7 @@ dependencies {
     testImplementation("org.testcontainers:postgresql:1.19.3")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.mockito:mockito-core:5.2.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
 }
 
 kotlin {

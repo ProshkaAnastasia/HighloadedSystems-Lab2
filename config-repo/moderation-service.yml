@@ -34,6 +34,8 @@ app:
   moderation:
     batch-size: 10
     timeout: 30
+  jwt:
+    secret: ${JWT_SECRET:itmo-market-super-secret-jwt-key-min-32-characters-long-2025}
 
 springdoc:
   swagger-ui:
