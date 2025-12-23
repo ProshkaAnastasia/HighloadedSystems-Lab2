@@ -47,7 +47,7 @@ class ModerationService(
         return verifyModerator(moderatorId)
             .flatMap {
                 Mono.fromCallable {
-                    productServiceClient.getProductById(productId)
+                    productServiceClient.getPendingProductById(productId)
                 }
                 .subscribeOn(Schedulers.boundedElastic())
                 .doOnSuccess { logger.info("Fetched product $productId") }

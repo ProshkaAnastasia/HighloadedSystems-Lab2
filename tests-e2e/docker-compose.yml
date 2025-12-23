@@ -1,0 +1,350 @@
+services:
+  # ========================
+  # INFRASTRUCTURE SERVICES
+  # ========================
+  
+  eureka-server:
+    build:
+      context: ../eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"  # Eureka всегда на 8761 (для регистрации)
+    environment:
+      - EUREKA_PORT=8761
+    networks:
+      - itmo-network
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  config-server:
+    build:
+      context: ../config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"  # Config Server всегда на 8888 (для подключения)
+    environment:
+      - CONFIG_PORT=8888
+      - CONFIG_REPO_PATH=/config-repo
+    volumes:
+      - ./config-repo:/config-repo:ro
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 50s
+
+  # ========================
+  # DATABASE SERVICES
+  # ========================
+
+  postgres-user:
+    image: postgres:15-alpine
+    container_name: postgres-user
+    environment:
+      POSTGRES_USER: itmouser
+      POSTGRES_PASSWORD: itmopassword
+      POSTGRES_DB: itmomarket_user
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    ports:
+      - "5401:5432"
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itmouser -d itmomarket_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-product:
+    image: postgres:15-alpine
+    container_name: postgres-product
+    environment:
+      POSTGRES_USER: itmouser
+      POSTGRES_PASSWORD: itmopassword
+      POSTGRES_DB: itmomarket_product
+    volumes:
+      - postgres_product_data:/var/lib/postgresql/data
+    ports:
+      - "5402:5432"
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itmouser -d itmomarket_product"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-order:
+    image: postgres:15-alpine
+    container_name: postgres-order
+    environment:
+      POSTGRES_USER: itmouser
+      POSTGRES_PASSWORD: itmopassword
+      POSTGRES_DB: itmomarket_order
+    volumes:
+      - postgres_order_data:/var/lib/postgresql/data
+    ports:
+      - "5403:5432"
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itmouser -d itmomarket_order"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-moderation:
+    image: postgres:15-alpine
+    container_name: postgres-moderation
+    environment:
+      POSTGRES_USER: itmouser
+      POSTGRES_PASSWORD: itmopassword
+      POSTGRES_DB: itmomarket_moderation
+    volumes:
+      - postgres_moderation_data:/var/lib/postgresql/data
+    ports:
+      - "5404:5432"
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itmouser -d itmomarket_moderation"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    ports:
+      - "9999:8080" 
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+      postgres-product:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      postgres-moderation:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+
+  # ========================
+  # MICROSERVICES (RANDOM PORTS)
+  # ========================
+
+  user-service:
+    build:
+      context: ../user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "0:8080"  # ← RANDOM port mapped to 8081 in container
+    environment:
+      - SERVER_PORT=8080  # ← Internal port (фиксированный в контейнере)
+      - DB_HOST=postgres-user
+      - DB_PORT=5432
+      - DB_NAME=itmomarket_user
+      - DB_USER=itmouser
+      - DB_PASSWORD=itmopassword
+      - CONFIG_SERVER_HOST=config-server
+      - CONFIG_SERVER_PORT=8888
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      gateway-service:
+        condition: service_healthy
+      postgres-user:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  product-service:
+    build:
+      context: ../product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "0:8080"  # ← RANDOM port
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=postgres-product
+      - DB_PORT=5432
+      - DB_NAME=itmomarket_product
+      - DB_USER=itmouser
+      - DB_PASSWORD=itmopassword
+      - CONFIG_SERVER_HOST=config-server
+      - CONFIG_SERVER_PORT=8888
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      gateway-service:
+        condition: service_healthy
+      postgres-product:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  order-service:
+    build:
+      context: ../order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "0:8080"  # ← RANDOM port
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=postgres-order
+      - DB_PORT=5432
+      - DB_NAME=itmomarket_order
+      - DB_USER=itmouser
+      - DB_PASSWORD=itmopassword
+      - CONFIG_SERVER_HOST=config-server
+      - CONFIG_SERVER_PORT=8888
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      gateway-service:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  moderation-service:
+    build:
+      context: ../moderation-service
+      dockerfile: Dockerfile
+    container_name: moderation-service
+    ports:
+      - "0:8080"  # ← RANDOM port
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=postgres-moderation
+      - DB_PORT=5432
+      - DB_NAME=itmomarket_moderation
+      - DB_USER=itmouser
+      - DB_PASSWORD=itmopassword
+      - CONFIG_SERVER_HOST=config-server
+      - CONFIG_SERVER_PORT=8888
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-moderation:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      gateway-service:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  gateway-service:
+    build:
+      context: ../gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8080:8080"  # ← Gateway всегда на 8080 (entry point)
+    environment:
+      - SERVER_PORT=8080
+      - CONFIG_SERVER_HOST=config-server
+      - CONFIG_SERVER_PORT=8888
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - itmo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  itmo-network:
+    driver: bridge
+
+volumes:
+  postgres_user_data:
+  postgres_product_data:
+  postgres_order_data:
+  postgres_moderation_data:
