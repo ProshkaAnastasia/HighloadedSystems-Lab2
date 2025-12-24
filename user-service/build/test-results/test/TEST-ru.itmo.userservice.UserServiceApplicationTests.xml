@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ru.itmo.userservice.UserServiceApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-12-24T06:24:01.844Z" hostname="MacBook-Pro-Anastasia-6.local" time="1.841">
+  <properties/>
+  <testcase name="contextLoads()" classname="ru.itmo.userservice.UserServiceApplicationTests" time="1.841"/>
+  <system-out><![CDATA[09:23:44.900 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [ru.itmo.userservice.UserServiceApplicationTests]: UserServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+09:23:45.244 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration ru.itmo.userservice.UserServiceApplication for test class ru.itmo.userservice.UserServiceApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.7)
+
+2025-12-24T09:23:51.215+03:00  INFO 96902 --- [user-service] [    Test worker] r.i.u.UserServiceApplicationTests        : The following 1 profile is active: "test"
+2025-12-24T09:24:01.628+03:00  WARN 96902 --- [user-service] [    Test worker] iguration$LoadBalancerCaffeineWarnLogger : Spring Cloud LoadBalancer is currently working with the default cache. While this cache implementation is useful for development and tests, it's recommended to use Caffeine cache in production.You can switch to using Caffeine cache, by adding it and org.springframework.cache.caffeine.CaffeineCacheManager to the classpath.
+2025-12-24T09:24:01.824+03:00  INFO 96902 --- [user-service] [    Test worker] r.i.u.UserServiceApplicationTests        : Started UserServiceApplicationTests in 15.971 seconds (process running for 26.744)
+2025-12-24T09:24:01.831+03:00  WARN 96902 --- [user-service] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2025-12-24T09:24:01.834+03:00  WARN 96902 --- [user-service] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
