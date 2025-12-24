@@ -4,6 +4,7 @@ from typing import Iterator
 import psycopg2
 import pytest
 import requests
+import time
 from tenacity import retry, stop_after_delay, wait_fixed
 
 pytest_plugins = ["fixtures_data"]
@@ -74,7 +75,7 @@ def _print_step(step: int, total: int, message: str) -> None:
 def _check_config_server() -> None:
     """Wait for config-server to become healthy."""
     
-    resp = requests.get(f"{CONFIG_SERVER_URL}/actuator/health", timeout=10)
+    resp = requests.get(f"{CONFIG_SERVER_URL}/user-service/default", timeout=10)
     resp.raise_for_status()
 
 
@@ -95,7 +96,7 @@ def _check_eureka() -> None:
 @retry(stop=stop_after_delay(500), wait=wait_fixed(5))
 def _check_service(service_name: str, service_id: str) -> None:
     """Check if a microservice is healthy via Gateway."""
-    url = f"{GATEWAY_URL}/{service_id}/actuator/health"
+    url = f"{GATEWAY_URL}/{service_id}/actuator/health/readiness"
     
     try:
         resp = requests.get(url, timeout=10)
@@ -139,10 +140,7 @@ def pytest_configure(config):
 
     print("Starting config-server...")
     subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build", "config-server"],
-        check=False,
-        capture_output=True,
-        text=True
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build", "config-server"]
     )
 
     _print_step(0, 6, "Waiting for Config Server")
@@ -151,9 +149,7 @@ def pytest_configure(config):
     # Start new containers
     print("Starting docker-compose with --build...")
     result = subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"],
-        capture_output=True,
-        text=True,
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"]
     )
     
     _print_success("Docker-compose started")
@@ -175,6 +171,7 @@ def pytest_configure(config):
         
         _print_header("[✓] ALL INFRASTRUCTURE READY!")
         print()
+        time.sleep(10)
         
     except Exception as e:
         _print_error(f"Infrastructure setup failed: {e}")
