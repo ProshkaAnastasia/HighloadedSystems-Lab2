@@ -137,19 +137,13 @@ def pytest_configure(config):
         check=False,
         capture_output=True,
     )
-
-    print("Starting config-server...")
-    subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build", "config-server"]
-    )
-
-    _print_step(0, 6, "Waiting for Config Server")
-    _check_config_server()
     
     # Start new containers
     print("Starting docker-compose with --build...")
     result = subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"]
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"],
+        capture_output=True,
+        text=True
     )
     
     _print_success("Docker-compose started")
@@ -158,6 +152,9 @@ def pytest_configure(config):
     _print_header("WAITING FOR SERVICES TO BE READY")
     
     try:
+        _print_step(0, 6, "Waiting for Config Server")
+        _check_config_server()
+
         _print_step(1, 6, "Waiting for Service Registry (Eureka)")
         _check_eureka()
 
@@ -171,7 +168,6 @@ def pytest_configure(config):
         
         _print_header("[✓] ALL INFRASTRUCTURE READY!")
         print()
-        time.sleep(10)
         
     except Exception as e:
         _print_error(f"Infrastructure setup failed: {e}")

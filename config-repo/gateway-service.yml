@@ -85,15 +85,18 @@ resilience4j:
     configs:
       default:
         registerHealthIndicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 10000
-        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 20              # было 10
+        minimum-number-of-calls: 10          # было 5
+        failure-rate-threshold: 80           # было 50
+        wait-duration-in-open-state: 30000   # было 10000 (30 сек вместо 10)
+        permitted-number-of-calls-in-half-open-state: 5  # было 3
+        slow-call-duration-threshold: 5000   # ← ДОБАВЬТЕ
+        slow-call-rate-threshold: 100        # ← ДОБАВЬТЕ
         record-exceptions:
           - java.net.SocketException
           - java.net.SocketTimeoutException
           - org.springframework.web.client.ResourceAccessException
+
 
 logging:
   level:
