@@ -10,7 +10,7 @@ BASE = "http://localhost:8080/product-service/api"
 @pytest.mark.regression
 class TestProductService:
 
-    def test_create_shop(self, infrastructure_ready, seller):
+    def test_create_shop(self, seller):
         payload = {
             "name": "Py Shop",
             "description": "Created via tests",
@@ -24,18 +24,18 @@ class TestProductService:
         assert resp.status_code == 201
         assert resp.json()["sellerId"] == seller
 
-    def test_get_shop_by_id(self, infrastructure_ready, shop):
+    def test_get_shop_by_id(self, shop):
         resp = requests.get(f"{BASE}/shops/{shop}")
         assert resp.status_code == 200
         assert resp.json()["id"] == shop
 
-    def test_get_all_shops(self, infrastructure_ready):
+    def test_get_all_shops(self):
         resp = requests.get(f"{BASE}/shops", params={"page": 1, "pageSize": 20})
         assert resp.status_code == 200
         data = resp.json()
         assert "data" in data
 
-    def test_create_product(self, infrastructure_ready, seller, shop):
+    def test_create_product(self, seller, shop):
         payload = {
             "name": "E2E Product",
             "description": "From tests",
@@ -52,19 +52,19 @@ class TestProductService:
         product = resp.json()
         assert product["name"] == "E2E Product"
 
-    def test_get_product_by_id(self, infrastructure_ready, product_approved):
+    def test_get_product_by_id(self, product_approved):
         resp = requests.get(f"{BASE}/products/{product_approved}")
         assert resp.status_code == 200
         assert resp.json()["id"] == product_approved
 
-    def test_get_all_products(self, infrastructure_ready, product_approved):
+    def test_get_all_products(self, product_approved):
         resp = requests.get(f"{BASE}/products", params={"page": 1, "pageSize": 20})
         assert resp.status_code == 200
         page = resp.json()
         ids = [p["id"] for p in page["data"]]
         assert product_approved in ids
 
-    def test_search_products(self, infrastructure_ready, product_approved):
+    def test_search_products(self, product_approved):
         resp = requests.get(
             f"{BASE}/products/search",
             params={"keywords": "Approved", "page": 1, "pageSize": 20},
@@ -72,21 +72,21 @@ class TestProductService:
         assert resp.status_code == 200
         assert len(resp.json()["data"]) >= 1
 
-    def test_get_pending_products(self, infrastructure_ready):
+    def test_get_pending_products(self):
         resp = requests.get(
             f"{BASE}/products/pending",
             params={"page": 1, "pageSize": 20},
         )
         assert resp.status_code == 200
 
-    def test_get_shop_products(self, infrastructure_ready, shop, product_approved):
+    def test_get_shop_products(self, shop, product_approved):
         resp = requests.get(
             f"{BASE}/shops/{shop}/products",
             params={"page": 1, "pageSize": 20},
         )
         assert resp.status_code == 200
 
-    def test_update_product(self, infrastructure_ready, seller, shop):
+    def test_update_product(self, seller, moderator, shop):
         create_resp = requests.post(
             f"{BASE}/products",
             params={"sellerId": seller},
@@ -102,13 +102,13 @@ class TestProductService:
         }
         resp = requests.put(
             f"{BASE}/products/{product_id}",
-            params={"userId": seller},
+            params={"userId": moderator},
             json=update_payload,
         )
         assert resp.status_code == 200
         assert resp.json()["name"] == "Updated name"
 
-    def test_delete_product(self, infrastructure_ready, seller, shop):
+    def test_delete_product(self, seller, shop):
         create_resp = requests.post(
             f"{BASE}/products",
             params={"sellerId": seller},

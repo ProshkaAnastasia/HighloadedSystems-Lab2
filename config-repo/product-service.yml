@@ -58,3 +58,19 @@ eureka:
       defaultZone: http://${EUREKA_HOST:eureka-server}:${EUREKA_PORT:8761}/eureka
     register-with-eureka: true
     fetch-registry: true
+
+management:
+  health:
+    livenessState:
+      enabled: true          # Включает /actuator/health/liveness
+    readinessState:
+      enabled: true          # Включает /actuator/health/readiness
+  endpoint:
+    health:
+      show-details: always   # Показывает детали компонентов (БД, кэши, etc)
+      probes:
+        enabled: true        # Для Kubernetes-like проб
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # Что экспонировать

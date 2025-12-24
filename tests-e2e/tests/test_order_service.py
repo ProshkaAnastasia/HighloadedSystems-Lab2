@@ -10,12 +10,12 @@ BASE = "http://localhost:8080/order-service/api"
 @pytest.mark.regression
 class TestOrderService:
 
-    def test_get_empty_cart(self, infrastructure_ready, user):
+    def test_get_empty_cart(self, user):
         resp = requests.get(f"{BASE}/cart", params={"userId": user})
         assert resp.status_code == 200
         assert resp.json()["items"] == []
 
-    def test_add_to_cart_and_get(self, infrastructure_ready, user, product_approved):
+    def test_add_to_cart_and_get(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 2}
         resp = requests.post(
             f"{BASE}/cart/items",
@@ -30,7 +30,7 @@ class TestOrderService:
         assert resp2.status_code == 200
         assert len(resp2.json()["items"]) == 1
 
-    def test_update_cart_item(self, infrastructure_ready, user, product_approved):
+    def test_update_cart_item(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 1}
         requests.post(f"{BASE}/cart/items", params={"userId": user}, json=payload)
         cart = requests.get(f"{BASE}/cart", params={"userId": user}).json()
@@ -46,7 +46,7 @@ class TestOrderService:
         new_cart = resp.json()
         assert new_cart["items"][0]["quantity"] == 5
 
-    def test_remove_from_cart(self, infrastructure_ready, user, product_approved):
+    def test_remove_from_cart(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 1}
         requests.post(f"{BASE}/cart/items", params={"userId": user}, json=payload)
         cart = requests.get(f"{BASE}/cart", params={"userId": user}).json()
@@ -59,7 +59,7 @@ class TestOrderService:
         assert resp.status_code == 200
         assert requests.get(f"{BASE}/cart", params={"userId": user}).json()["items"] == []
 
-    def test_clear_cart(self, infrastructure_ready, user, product_approved):
+    def test_clear_cart(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 2}
         requests.post(f"{BASE}/cart/items", params={"userId": user}, json=payload)
 
@@ -67,7 +67,7 @@ class TestOrderService:
         assert resp.status_code == 204
         assert requests.get(f"{BASE}/cart", params={"userId": user}).json()["items"] == []
 
-    def test_create_order_from_cart(self, infrastructure_ready, user, product_approved):
+    def test_create_order_from_cart(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 2}
         requests.post(f"{BASE}/cart/items", params={"userId": user}, json=payload)
 
@@ -82,7 +82,7 @@ class TestOrderService:
         assert order["userId"] == user
         assert len(order["items"]) == 1
 
-    def test_get_user_orders_and_order_by_id(self, infrastructure_ready, user, product_approved):
+    def test_get_user_orders_and_order_by_id(self, user, product_approved):
         payload = {"productId": product_approved, "quantity": 1}
         requests.post(f"{BASE}/cart/items", params={"userId": user}, json=payload)
         order_resp = requests.post(

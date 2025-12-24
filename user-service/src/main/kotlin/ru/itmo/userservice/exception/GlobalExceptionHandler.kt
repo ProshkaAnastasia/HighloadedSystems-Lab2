@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.bind.MethodArgumentNotValidException
 import ru.itmo.userservice.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
+import jakarta.validation.ConstraintViolationException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -44,6 +45,26 @@ class GlobalExceptionHandler {
             ))
     }
 
+    @ExceptionHandler(ConstraintViolationException::class)
+    fun handleConstraintViolationException(
+        ex: ConstraintViolationException,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<ErrorResponse>> {
+        val errors = ex.constraintViolations
+            .map { "${it.propertyPath}: ${it.message}" }
+        
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse(
+                    message = "Validation failed",
+                    status = HttpStatus.BAD_REQUEST.value(),
+                    timestamp = LocalDateTime.now(),
+                    path = exchange.request.path.value(),
+                    errors = errors
+                ))
+        )
+    }
+    
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationExceptions(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
         val errors = ex.bindingResult.fieldErrors

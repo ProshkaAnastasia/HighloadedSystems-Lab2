@@ -16,10 +16,12 @@ import ru.itmo.userservice.model.dto.request.UpdateProfileRequest
 import ru.itmo.userservice.model.dto.response.UserResponse
 import ru.itmo.userservice.model.dto.response.ErrorResponse
 import ru.itmo.userservice.service.UserService
+import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "Users", description = "User management API")
+@Validated
 class UserController(
     private val userService: UserService
 ) {

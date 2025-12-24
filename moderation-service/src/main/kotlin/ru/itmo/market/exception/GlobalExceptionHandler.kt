@@ -4,8 +4,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.bind.MethodArgumentNotValidException
+import reactor.core.publisher.Mono
 import java.time.LocalDateTime
 import ru.itmo.market.model.dto.response.ErrorResponse
+import jakarta.validation.ConstraintViolationException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -54,17 +58,46 @@ class GlobalExceptionHandler {
             ))
     }
 
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(ErrorResponse(
-                message = ex.message ?: "Bad request",
-                status = HttpStatus.BAD_REQUEST.value(),
-                timestamp = LocalDateTime.now(),
-                path = ""
-            ))
+    @ExceptionHandler(ConstraintViolationException::class)
+    fun handleConstraintViolationException(
+        ex: ConstraintViolationException,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<ErrorResponse>> {
+        val errors = ex.constraintViolations
+            .map { "${it.propertyPath}: ${it.message}" }
+        
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse(
+                    message = "Validation failed",
+                    status = HttpStatus.BAD_REQUEST.value(),
+                    timestamp = LocalDateTime.now(),
+                    path = exchange.request.path.value(),
+                    errors = errors
+                ))
+        )
     }
-
+    
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleValidationExceptions(
+        ex: MethodArgumentNotValidException,
+        exchange: ServerWebExchange
+    ): Mono<ResponseEntity<ErrorResponse>> {
+        val errors = ex.bindingResult.fieldErrors
+            .map { "${it.field}: ${it.defaultMessage}" }
+        
+        return Mono.just(
+            ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse(
+                    message = "Validation failed",
+                    status = HttpStatus.BAD_REQUEST.value(),
+                    timestamp = LocalDateTime.now(),
+                    path = exchange.request.path.value(),
+                    errors = errors
+                ))
+        )
+    } 
+    
     @ExceptionHandler(Exception::class)
     fun handleGenericException(ex: Exception): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -8,7 +8,7 @@ BASE = "http://localhost:8080"
 
 
 @pytest.mark.smoke
-def test_full_shopping_flow(infrastructure_ready, user, seller, shop):
+def test_full_shopping_flow(user, seller, moderator, shop):
     # 1. Создаём товар
     create_resp = requests.post(
         f"{BASE}/product-service/api/products",
@@ -27,7 +27,7 @@ def test_full_shopping_flow(infrastructure_ready, user, seller, shop):
     # 2. Модератор одобряет
     approve_resp = requests.post(
         f"{BASE}/moderation-service/api/moderation/products/{product_id}/approve",
-        params={"moderatorId": 1},
+        params={"moderatorId": moderator},
     )
     assert approve_resp.status_code == 200
 

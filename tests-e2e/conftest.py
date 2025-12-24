@@ -1,7 +1,6 @@
 import subprocess
 from contextlib import contextmanager
 from typing import Iterator
-
 import psycopg2
 import pytest
 import requests
@@ -9,112 +8,112 @@ from tenacity import retry, stop_after_delay, wait_fixed
 
 pytest_plugins = ["fixtures_data"]
 
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
 GATEWAY_URL = "http://localhost:8080"
+CONFIG_SERVER_URL = "http://localhost:8888"
 COMPOSE_FILE = "docker-compose.yml"
 EUREKA_URL = "http://localhost:8761"
 
+SERVICES = [
+    ("User Service", "user-service"),
+    ("Product Service", "product-service"),
+    ("Order Service", "order-service"),
+    ("Moderation Service", "moderation-service"),
+]
 
-# ---------- Docker-compose lifecycle ----------
+DB_CONFIG = [
+    ("db_user", "localhost", 5401, "itmomarket_user"),
+    ("db_product", "localhost", 5402, "itmomarket_product"),
+    ("db_order", "localhost", 5403, "itmomarket_order"),
+    ("db_moderation", "localhost", 5404, "itmomarket_moderation"),
+]
 
-@pytest.fixture(scope="session", autouse=True)
-def docker_compose() -> Iterator[None]:
-    """Поднимает весь стек docker-compose и гасит его после тестов."""
-    # Остановить и очистить старое
-    subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "down", "-v"],
-        check=False,
-        capture_output=True,
-    )
+TRUNCATE_QUERIES = [
+    "TRUNCATE TABLE order_items CASCADE;",
+    "TRUNCATE TABLE orders CASCADE;",
+    "TRUNCATE TABLE carts CASCADE;",
+    "TRUNCATE TABLE moderation_audit CASCADE;",
+    "TRUNCATE TABLE moderation_actions CASCADE;",
+    "TRUNCATE TABLE products CASCADE;",
+    "TRUNCATE TABLE shops CASCADE;",
+    "TRUNCATE TABLE user_roles CASCADE;",
+    "TRUNCATE TABLE users CASCADE;",
+]
 
-    # Поднять всё
-    subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"],
-        check=True,
-    )
 
-    yield
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
-    # Остановить после тестов
-    subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "down", "-v"],
-        check=False,
-    )
+def _print_header(title: str) -> None:
+    """Print formatted header."""
+    print("\n" + "="*70)
+    print(title)
+    print("="*70)
+
+
+def _print_success(message: str) -> None:
+    """Print success message."""
+    print(f"[✓] {message}")
+
+
+def _print_error(message: str) -> None:
+    """Print error message."""
+    print(f"[✗] {message}")
+
+
+def _print_step(step: int, total: int, message: str) -> None:
+    """Print step progress."""
+    print(f"\n[{step}/{total}] {message}...")
+
+
+@retry(stop=stop_after_delay(900), wait=wait_fixed(5))
+def _check_config_server() -> None:
+    """Wait for config-server to become healthy."""
+    
+    resp = requests.get(f"{CONFIG_SERVER_URL}/actuator/health", timeout=10)
+    resp.raise_for_status()
 
 
 @retry(stop=stop_after_delay(500), wait=wait_fixed(5))
-def _wait_gateway_health() -> None:
-    """Ждём, пока gateway начнёт отвечать по /actuator/health."""
+def _check_gateway() -> None:
+    """Check if API Gateway is healthy."""
     resp = requests.get(f"{GATEWAY_URL}/actuator/health", timeout=10)
     resp.raise_for_status()
 
 
 @retry(stop=stop_after_delay(500), wait=wait_fixed(5))
-def _wait_eureka() -> None:
-    """Ждём UI Eureka, чтобы быть уверенными, что сервисы зарегистрированы."""
-    resp = requests.get("http://localhost:8761/", timeout=10)
+def _check_eureka() -> None:
+    """Check if Eureka service discovery is healthy."""
+    resp = requests.get(f"{EUREKA_URL}/", timeout=10)
     resp.raise_for_status()
 
 
 @retry(stop=stop_after_delay(500), wait=wait_fixed(5))
-def _wait_service_healthy(service_name: str, service_id: str) -> None:
-    """
-    Проверяет здоровье сервиса через Gateway.
+def _check_service(service_name: str, service_id: str) -> None:
+    """Check if a microservice is healthy via Gateway."""
+    url = f"{GATEWAY_URL}/{service_id}/actuator/health"
     
-    Gateway маршрутизирует: localhost:8080/{service_id}/actuator/health
-    """
     try:
-        url = f"{GATEWAY_URL}/{service_id}/actuator/health"
         resp = requests.get(url, timeout=10)
         
         if resp.status_code == 503:
-            print(f"[...] {service_name}: 503 Service Unavailable")
+            #print(f"[...] {service_name}: Waiting for registration...")
             raise Exception(f"{service_name} unavailable (503)")
         
         if resp.status_code != 200:
-            print(f"[...] {service_name}: {resp.status_code}")
             raise Exception(f"{service_name} returned {resp.status_code}")
         
         health_data = resp.json()
         status = health_data.get("status", "UNKNOWN")
-        
-        print(f"[✓] {service_name} is UP (status: {status})")
+        _print_success(f"{service_name} is UP (status: {status})")
         
     except requests.RequestException as e:
         print(f"[...] {service_name}: {type(e).__name__}")
         raise
-
-
-@pytest.fixture(scope="session", autouse=True)
-def infrastructure_ready(docker_compose) -> str:
-    """
-    Инфраструктура готова: gateway + eureka + все микросервисы.
-    """
-    print("\n" + "="*70)
-    print("WAITING FOR INFRASTRUCTURE...")
-    print("="*70)
-    
-    print("\n[1/6] Waiting for Gateway...")
-    _wait_gateway_health()
-    
-    print("\n[2/6] Waiting for Eureka...")
-    _wait_eureka()
-    
-    services = [
-        ("User Service", "user-service"),
-        ("Product Service", "product-service"),
-        ("Order Service", "order-service"),
-        ("Moderation Service", "moderation-service"),
-    ]
-    
-    for idx, (service_name, service_id) in enumerate(services, start=3):
-        print(f"\n[{idx}/6] Waiting for {service_name}...")
-        _wait_service_healthy(service_name, service_id)
-    
-    print("\n" + "="*70)
-    print("[✓] ALL INFRASTRUCTURE READY!")
-    print("="*70 + "\n")
-    
-    return GATEWAY_URL
 
 
 # ============================================================================
@@ -137,6 +136,17 @@ def pytest_configure(config):
         check=False,
         capture_output=True,
     )
+
+    print("Starting config-server...")
+    subprocess.run(
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build", "config-server"],
+        check=False,
+        capture_output=True,
+        text=True
+    )
+
+    _print_step(0, 6, "Waiting for Config Server")
+    _check_config_server()
     
     # Start new containers
     print("Starting docker-compose with --build...")
@@ -146,21 +156,17 @@ def pytest_configure(config):
         text=True,
     )
     
-    if result.returncode != 0:
-        _print_error(f"docker-compose failed: {result.stderr}")
-        raise SystemExit(1)
-    
     _print_success("Docker-compose started")
     
     # Wait for infrastructure
     _print_header("WAITING FOR SERVICES TO BE READY")
     
     try:
-        _print_step(1, 6, "Waiting for API Gateway")
-        _check_gateway()
-        
-        _print_step(2, 6, "Waiting for Service Registry (Eureka)")
+        _print_step(1, 6, "Waiting for Service Registry (Eureka)")
         _check_eureka()
+
+        _print_step(2, 6, "Waiting for API Gateway")
+        _check_gateway()
         
         # Wait for each microservice
         for idx, (service_name, service_id) in enumerate(SERVICES, start=3):

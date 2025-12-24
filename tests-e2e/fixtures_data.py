@@ -4,6 +4,7 @@ import uuid
 
 import psycopg2
 import pytest
+import time
 
 
 # ---------- низкоуровневые функции вставки ----------
@@ -175,3 +176,20 @@ def product_approved(db_product, seller, shop) -> int:
         seller,
         "APPROVED"
     )
+
+
+@pytest.fixture
+def wait_until():
+    """Fixture для ожидания условия"""
+    def _wait_until(condition, timeout_seconds=30, check_interval=0.5):
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            try:
+                if condition():
+                    return True
+            except:
+                pass
+            time.sleep(check_interval)
+        return False
+    return _wait_until
+

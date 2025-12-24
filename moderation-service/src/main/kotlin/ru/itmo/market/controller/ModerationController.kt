@@ -20,10 +20,12 @@ import ru.itmo.market.model.dto.response.ModerationResultResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.service.ModerationService
+import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/moderation")
 @Tag(name = "Moderation", description = "Product moderation API")
+@Validated
 class ModerationController(
     private val moderationService: ModerationService
 ) {
@@ -105,7 +107,7 @@ class ModerationController(
         id: Long
     ): Mono<ResponseEntity<ModerationResultResponse>> {
         return moderationService.approveProduct(moderatorId, id)
-            .map { ResponseEntity.status(HttpStatus.CREATED).body(it) }
+            .map { ResponseEntity.status(HttpStatus.OK).body(it) }
     }
     
     @PostMapping("/products/{id}/reject")
@@ -134,7 +136,7 @@ class ModerationController(
         request: RejectProductRequest
     ): Mono<ResponseEntity<ModerationResultResponse>> {
         return moderationService.rejectProduct(moderatorId, id, request.reason)
-            .map { ResponseEntity.status(HttpStatus.CREATED).body(it) }
+            .map { ResponseEntity.status(HttpStatus.OK).body(it) }
     }
     
     @PostMapping("/bulk")

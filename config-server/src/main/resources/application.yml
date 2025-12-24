@@ -8,6 +8,8 @@ spring:
           uri: https://github.com/ProshkaAnastasia/HighloadedSystems-Lab2
           default-label: main
           search-paths: "/config-repo"
+          clone-on-start: true
+          force-pull: false
 
 server:
   port: ${CONFIG_PORT:8888}

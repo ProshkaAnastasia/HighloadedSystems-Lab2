@@ -17,10 +17,12 @@ import ru.itmo.productservice.model.dto.request.UpdateProductRequest
 import ru.itmo.productservice.model.dto.response.PaginatedResponse
 import ru.itmo.productservice.model.dto.response.ProductResponse
 import ru.itmo.productservice.service.ProductService
+import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/products")
 @Tag(name = "Products", description = "Product catalog API")
+@Validated
 class ProductController(
     private val productService: ProductService
 ) {

@@ -18,9 +18,11 @@ import ru.itmo.productservice.model.dto.response.PaginatedResponse
 import ru.itmo.productservice.model.dto.response.ProductResponse
 import ru.itmo.productservice.model.dto.response.ShopResponse
 import ru.itmo.productservice.service.ShopService
+import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/shops")
+@Validated
 @Tag(name = "Shops", description = "Shop management API")
 class ShopController(
     private val shopService: ShopService

@@ -85,3 +85,19 @@ resilience4j:
         timeoutDuration: 10s
       user-service:
         timeoutDuration: 10s
+
+management:
+  health:
+    livenessState:
+      enabled: true          # Включает /actuator/health/liveness
+    readinessState:
+      enabled: true          # Включает /actuator/health/readiness
+  endpoint:
+    health:
+      show-details: always   # Показывает детали компонентов (БД, кэши, etc)
+      probes:
+        enabled: true        # Для Kubernetes-like проб
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # Что экспонировать
