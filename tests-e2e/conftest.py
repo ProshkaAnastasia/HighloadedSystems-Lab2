@@ -19,10 +19,10 @@ COMPOSE_FILE = "docker-compose.yml"
 EUREKA_URL = "http://localhost:8761"
 
 SERVICES = [
+    ("Moderation Service", "moderation-service"),
     ("User Service", "user-service"),
     ("Product Service", "product-service"),
-    ("Order Service", "order-service"),
-    ("Moderation Service", "moderation-service"),
+    ("Order Service", "order-service")
 ]
 
 DB_CONFIG = [
@@ -102,7 +102,7 @@ def _check_service(service_name: str, service_id: str) -> None:
         resp = requests.get(url, timeout=10)
         
         if resp.status_code == 503:
-            #print(f"[...] {service_name}: Waiting for registration...")
+            print(f"[...] {service_name}: Waiting for registration...")
             raise Exception(f"{service_name} unavailable (503)")
         
         if resp.status_code != 200:
@@ -141,9 +141,7 @@ def pytest_configure(config):
     # Start new containers
     print("Starting docker-compose with --build...")
     result = subprocess.run(
-        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"],
-        capture_output=True,
-        text=True
+        ["docker-compose", "-f", COMPOSE_FILE, "up", "-d", "--build"]
     )
     
     _print_success("Docker-compose started")

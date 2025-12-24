@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.bind.MethodArgumentNotValidException
 import java.time.LocalDateTime
-import jakarta.validation.ConstraintViolationException
 
 data class ErrorResponse(
     val message: String?,
@@ -84,22 +83,6 @@ class GlobalExceptionHandler {
     ): ResponseEntity<ErrorResponse> {
         val errors = ex.bindingResult.fieldErrors
             .map { "${it.field}: ${it.defaultMessage}" }
-
-        val errorResponse = ErrorResponse(
-            message = "Validation failed",
-            status = HttpStatus.BAD_REQUEST.value(),
-            path = request.getDescription(false).replace("uri=", ""),
-            errors = errors
-        )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse)
-    }
-
-    @ExceptionHandler(ConstraintViolationException::class)
-    fun handleConstraintViolationException(
-        ex: ConstraintViolationException,
-        request: WebRequest
-    ): ResponseEntity<ErrorResponse> {
-        val errors = ex.constraintViolations.map { it.message }
 
         val errorResponse = ErrorResponse(
             message = "Validation failed",

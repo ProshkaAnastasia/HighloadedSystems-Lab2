@@ -15,7 +15,6 @@ import ru.itmo.orderservice.model.dto.request.CreateOrderRequest
 import ru.itmo.orderservice.model.dto.response.OrderResponse
 import ru.itmo.orderservice.model.dto.response.PaginatedResponse
 import ru.itmo.orderservice.service.OrderService
-import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/orders")

@@ -8,7 +8,14 @@ BASE = "http://localhost:8080"
 
 
 @pytest.mark.smoke
-def test_full_shopping_flow(user, seller, moderator, shop):
+def test_full_shopping_flow(user, seller, moderator, shop, wait_until):
+
+    success = wait_until(
+        lambda: requests.get(f"{BASE}/moderation-service/actuator/health/readiness").status_code != 503,
+        timeout_seconds=10
+    )
+    assert success, "Moderation service is not available"
+    
     # 1. Создаём товар
     create_resp = requests.post(
         f"{BASE}/product-service/api/products",
@@ -29,7 +36,7 @@ def test_full_shopping_flow(user, seller, moderator, shop):
         f"{BASE}/moderation-service/api/moderation/products/{product_id}/approve",
         params={"moderatorId": moderator},
     )
-    assert approve_resp.status_code == 200
+    assert approve_resp.status_code == 200, approve_resp.json()
 
     # 3. Пользователь добавляет в корзину
     add_resp = requests.post(
